@@ -10,25 +10,57 @@ interface OpenRouterOptions {
   timeout?: number;
 }
 
+interface OpenRouterUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  costUsd: number;
+}
+
+export interface OpenRouterResult {
+  content: string;
+  usage: OpenRouterUsage | null;
+}
+
 interface OpenRouterResponse {
   choices: Array<{
     message: {
       content: string;
     };
   }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 const DEFAULT_MODEL = "anthropic/claude-sonnet-4";
 
+// OpenRouter pricing for Claude Sonnet 4 (per token)
+const PRICING: Record<string, { input: number; output: number }> = {
+  "anthropic/claude-sonnet-4": { input: 3 / 1_000_000, output: 15 / 1_000_000 },
+};
+
+function calculateCost(
+  model: string,
+  promptTokens: number,
+  completionTokens: number
+): number {
+  const pricing = PRICING[model] || PRICING[DEFAULT_MODEL];
+  return promptTokens * pricing.input + completionTokens * pricing.output;
+}
+
 export async function callOpenRouter(
   messages: ChatMessage[],
   options: OpenRouterOptions = {}
-): Promise<string> {
+): Promise<OpenRouterResult> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY is not configured");
   }
 
+  const model = options.model || DEFAULT_MODEL;
   const timeoutMs = options.timeout ?? 45000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -43,7 +75,7 @@ export async function callOpenRouter(
         "X-Title": "CallScore",
       },
       body: JSON.stringify({
-        model: options.model || DEFAULT_MODEL,
+        model,
         messages,
         temperature: options.temperature ?? 0.2,
         max_tokens: options.maxTokens ?? 4096,
@@ -65,14 +97,26 @@ export async function callOpenRouter(
       );
     }
 
-    const data = await response.json();
-    const content = (data as OpenRouterResponse).choices?.[0]?.message?.content;
+    const data = (await response.json()) as OpenRouterResponse;
+    const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
       throw new Error("Empty response from OpenRouter");
     }
 
-    return content;
+    let usage: OpenRouterUsage | null = null;
+    if (data.usage) {
+      const promptTokens = data.usage.prompt_tokens;
+      const completionTokens = data.usage.completion_tokens;
+      usage = {
+        promptTokens,
+        completionTokens,
+        totalTokens: data.usage.total_tokens,
+        costUsd: calculateCost(model, promptTokens, completionTokens),
+      };
+    }
+
+    return { content, usage };
   } catch (err) {
     clearTimeout(timeoutId);
     if (err instanceof Error && err.name === "AbortError") {

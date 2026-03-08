@@ -1,10 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Sparkline } from "./sparkline";
 import type { DashboardOverview, SparklinePoint } from "@/lib/dashboard-types";
+
+function formatCost(value: number): string {
+  if (value < 0.01) return `$${value.toFixed(4)}`;
+  if (value < 1) return `$${value.toFixed(3)}`;
+  return `$${value.toFixed(2)}`;
+}
 
 interface Props {
   overview: DashboardOverview;
@@ -100,6 +106,17 @@ export function OverviewCards({
             {overview.totalTranscripts} transcript
             {overview.totalTranscripts !== 1 ? "s" : ""}
           </p>
+          {overview.totalCost !== null && (
+            <p className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+              <DollarSign className="h-3 w-3" />
+              {formatCost(overview.totalCost)} total
+              {overview.avgCostPerEval !== null && (
+                <span className="ml-1">
+                  ({formatCost(overview.avgCostPerEval)}/eval)
+                </span>
+              )}
+            </p>
+          )}
           <div className="mt-2">
             <Sparkline data={evalSparkline} color="#6366f1" />
           </div>

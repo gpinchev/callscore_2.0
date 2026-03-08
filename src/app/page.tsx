@@ -8,9 +8,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Organization } from "@/lib/supabase/types";
 
+type OrgWithCost = Organization & { total_eval_cost: number | null };
+
 export default function LandingPage() {
   const router = useRouter();
-  const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [orgs, setOrgs] = useState<OrgWithCost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,6 +70,15 @@ export default function LandingPage() {
                       <Badge variant="secondary" className="text-xs capitalize">
                         {org.industry}
                       </Badge>
+                      {org.total_eval_cost != null && org.total_eval_cost > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          ${org.total_eval_cost < 0.01
+                            ? org.total_eval_cost.toFixed(4)
+                            : org.total_eval_cost < 1
+                            ? org.total_eval_cost.toFixed(3)
+                            : org.total_eval_cost.toFixed(2)} eval cost
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />

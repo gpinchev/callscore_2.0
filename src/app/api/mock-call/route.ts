@@ -82,14 +82,23 @@ export async function POST(request: Request) {
   });
 
   let rawTranscript: string;
+  let genCostUsd: number | null = null;
+  let genPromptTokens: number | null = null;
+  let genCompletionTokens: number | null = null;
   try {
-    rawTranscript = await callOpenRouter(
+    const { content, usage } = await callOpenRouter(
       [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       { temperature: 0.7, maxTokens: 4096, timeout: 60000 }
     );
+    rawTranscript = content;
+    if (usage) {
+      genCostUsd = usage.costUsd;
+      genPromptTokens = usage.promptTokens;
+      genCompletionTokens = usage.completionTokens;
+    }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "Mock call generation failed";
     console.error("Mock call LLM error:", errMsg, err);
@@ -110,6 +119,9 @@ export async function POST(request: Request) {
       raw_transcript: rawTranscript,
       service_type: serviceType,
       eval_status: "pending",
+      eval_cost_usd: genCostUsd,
+      eval_prompt_tokens: genPromptTokens,
+      eval_completion_tokens: genCompletionTokens,
     })
     .select()
     .single();

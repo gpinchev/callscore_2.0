@@ -118,6 +118,12 @@ export function TranscriptDetail({ orgId, transcript: initialTranscript, initial
   const passedCount = evalResults.filter((r) => r.passed).length;
   const totalCount = evalResults.length;
 
+  const formatCost = (value: number): string => {
+    if (value < 0.01) return `$${value.toFixed(4)}`;
+    if (value < 1) return `$${value.toFixed(3)}`;
+    return `$${value.toFixed(2)}`;
+  };
+
   // Auto-trigger evaluation for pending transcripts
   useEffect(() => {
     if (
@@ -153,6 +159,7 @@ export function TranscriptDetail({ orgId, transcript: initialTranscript, initial
         ...prev,
         eval_status: "completed",
         summary: data.summary,
+        eval_cost_usd: data.costUsd ?? prev.eval_cost_usd,
       }));
 
       // Map the response results to our format
@@ -394,6 +401,11 @@ export function TranscriptDetail({ orgId, transcript: initialTranscript, initial
               <span className="text-xs text-muted-foreground">passed</span>
             </div>
           </div>
+          {transcript.eval_cost_usd != null && transcript.eval_cost_usd > 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Eval cost: {formatCost(transcript.eval_cost_usd)}
+            </p>
+          )}
         </div>
       ) : evaluating ? (
         <div className="flex flex-col items-center py-8 gap-3">

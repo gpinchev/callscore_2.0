@@ -3,6 +3,8 @@ export interface DashboardOverview {
   totalEvaluations: number;
   overallPassRate: number | null;
   passRateChange: number | null;
+  totalCost: number | null;
+  avgCostPerEval: number | null;
   mostImprovedTechnician: {
     id: string;
     name: string;

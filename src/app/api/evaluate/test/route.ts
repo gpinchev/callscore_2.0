@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
   // Call OpenRouter
   try {
-    const rawResponse = await callOpenRouter([
+    const { content: rawResponse, usage } = await callOpenRouter([
       { role: "system", content: system },
       { role: "user", content: user },
     ]);
@@ -66,7 +66,10 @@ export async function POST(request: Request) {
       excerpt: string;
     }>(rawResponse);
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      costUsd: usage?.costUsd ?? null,
+    });
   } catch (err) {
     console.error("Eval test error:", err);
     return NextResponse.json(

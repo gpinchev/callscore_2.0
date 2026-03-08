@@ -199,6 +199,9 @@ export interface Transcript {
   location: string | null;
   metadata: Json;
   eval_status: string;
+  eval_cost_usd: number | null;
+  eval_prompt_tokens: number | null;
+  eval_completion_tokens: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -217,6 +220,9 @@ export interface TranscriptInsert {
   location?: string | null;
   metadata?: Json;
   eval_status?: string;
+  eval_cost_usd?: number | null;
+  eval_prompt_tokens?: number | null;
+  eval_completion_tokens?: number | null;
 }
 
 export interface TranscriptUpdate {
@@ -231,6 +237,9 @@ export interface TranscriptUpdate {
   location?: string | null;
   metadata?: Json;
   eval_status?: string;
+  eval_cost_usd?: number | null;
+  eval_prompt_tokens?: number | null;
+  eval_completion_tokens?: number | null;
 }
 
 // ============================================================

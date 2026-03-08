@@ -107,11 +107,20 @@ export async function POST(request: Request) {
   });
 
   let evalResponse: EvalResponse;
+  let evalCostUsd: number | null = null;
+  let evalPromptTokens: number | null = null;
+  let evalCompletionTokens: number | null = null;
   try {
-    const rawResponse = await callOpenRouter([
+    const { content: rawResponse, usage } = await callOpenRouter([
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ]);
+
+    if (usage) {
+      evalCostUsd = usage.costUsd;
+      evalPromptTokens = usage.promptTokens;
+      evalCompletionTokens = usage.completionTokens;
+    }
 
     evalResponse = parseJsonResponse<EvalResponse>(rawResponse);
 
@@ -167,12 +176,15 @@ export async function POST(request: Request) {
     );
   }
 
-  // 6. Update transcript with summary and completed status
+  // 6. Update transcript with summary, completed status, and cost data
   const { error: updateError } = await supabase
     .from("transcripts")
     .update({
       summary: evalResponse.summary || null,
       eval_status: "completed",
+      eval_cost_usd: evalCostUsd,
+      eval_prompt_tokens: evalPromptTokens,
+      eval_completion_tokens: evalCompletionTokens,
     })
     .eq("id", transcriptId);
 
@@ -195,5 +207,6 @@ export async function POST(request: Request) {
     passedCount,
     totalCount: evalResponse.results.length,
     results: evalResponse.results,
+    costUsd: evalCostUsd,
   });
 }

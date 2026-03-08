@@ -68,7 +68,7 @@ export async function GET(
     // Build transcript query for current period
     let transcriptQuery = supabase
       .from("transcripts")
-      .select("id, technician_id, source, service_type, eval_status, created_at")
+      .select("id, technician_id, source, service_type, eval_status, eval_cost_usd, created_at")
       .eq("organization_id", orgId)
       .gte("created_at", startDate.toISOString())
       .lte("created_at", endDate.toISOString());
@@ -142,6 +142,18 @@ export async function GET(
     const totalResults = filteredResults.length;
     const totalPassed = filteredResults.filter((r) => r.passed === true).length;
     const overallPassRate = totalResults > 0 ? totalPassed / totalResults : null;
+
+    // Aggregate eval costs
+    let totalCost = 0;
+    let costCount = 0;
+    for (const t of allTranscripts) {
+      const cost = (t as Record<string, unknown>).eval_cost_usd;
+      if (typeof cost === "number" && cost > 0) {
+        totalCost += cost;
+        costCount++;
+      }
+    }
+    const avgCostPerEval = costCount > 0 ? totalCost / costCount : null;
 
     // Previous period for comparison
     const periodLength = differenceInDays(endDate, startDate);
@@ -412,6 +424,8 @@ export async function GET(
         totalEvaluations: totalResults,
         overallPassRate,
         passRateChange,
+        totalCost: totalCost > 0 ? totalCost : null,
+        avgCostPerEval,
         mostImprovedTechnician,
         weakestCriterion: weakestCriterion
           ? {

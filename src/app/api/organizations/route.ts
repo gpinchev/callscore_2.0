@@ -12,20 +12,43 @@ const createOrgSchema = z.object({
 
 export async function GET() {
   const supabase = createServerClient();
-  const { data, error } = await supabase
-    .from("organizations")
-    .select("*")
-    .order("created_at", { ascending: false });
 
-  if (error) {
-    console.error("organizations GET error:", error);
+  const [orgResult, costResult] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("transcripts")
+      .select("organization_id, eval_cost_usd"),
+  ]);
+
+  if (orgResult.error) {
+    console.error("organizations GET error:", orgResult.error);
     return NextResponse.json(
       { error: "Failed to fetch organizations" },
       { status: 500 }
     );
   }
 
-  return NextResponse.json(data);
+  // Aggregate cost per org
+  const costByOrg = new Map<string, number>();
+  for (const t of costResult.data || []) {
+    const cost = t.eval_cost_usd;
+    if (typeof cost === "number" && cost > 0) {
+      costByOrg.set(
+        t.organization_id,
+        (costByOrg.get(t.organization_id) || 0) + cost
+      );
+    }
+  }
+
+  const orgsWithCost = orgResult.data.map((org) => ({
+    ...org,
+    total_eval_cost: costByOrg.get(org.id) || null,
+  }));
+
+  return NextResponse.json(orgsWithCost);
 }
 
 export async function POST(request: Request) {
