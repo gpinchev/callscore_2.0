@@ -446,7 +446,7 @@ function CriterionCard({
               />
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
                 <Label htmlFor={`status-${criterion.id}`} className="text-sm">
                   Status
@@ -463,6 +463,16 @@ function CriterionCard({
                     <SelectItem value="published">Published</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id={`notify-${criterion.id}`}
+                  checked={criterion.notify_on_fail ?? false}
+                  onCheckedChange={(checked) => onFieldChange("notify_on_fail", checked)}
+                />
+                <Label htmlFor={`notify-${criterion.id}`} className="text-sm cursor-pointer">
+                  Notify when failed
+                </Label>
               </div>
             </div>
 

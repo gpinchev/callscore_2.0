@@ -192,9 +192,18 @@ export async function POST(request: Request) {
     console.error("Transcript update error:", updateError);
   }
 
-  // 7. Fire-and-forget email notification (skip for mock transcripts)
+  // 7. Fire-and-forget email notification
+  // Send if: non-mock transcript AND at least one "notify_on_fail" criterion failed
   if (transcript.source !== "mock") {
-    sendEvalEmailAsync(transcriptId).catch(() => {});
+    const failedCriteriaIds = new Set(
+      evalResponse.results.filter((r) => !r.passed).map((r) => r.criteria_id)
+    );
+    const hasNotifyFailure = criteria.some(
+      (c) => (c as Record<string, unknown>).notify_on_fail === true && failedCriteriaIds.has(c.id)
+    );
+    if (hasNotifyFailure) {
+      sendEvalEmailAsync(transcriptId).catch(() => {});
+    }
   }
 
   // 8. Return results

@@ -132,6 +132,7 @@ export interface EvalCriteria {
   call_intent: string | null;
   call_intents: string[];
   is_active: boolean;
+  notify_on_fail: boolean;
   sort_order: number;
   status: string;
   target_pass_rate: number;
@@ -148,6 +149,7 @@ export interface EvalCriteriaInsert {
   call_intent?: string | null;
   call_intents?: string[];
   is_active?: boolean;
+  notify_on_fail?: boolean;
   sort_order?: number;
   status?: string;
   target_pass_rate?: number;
@@ -160,6 +162,7 @@ export interface EvalCriteriaUpdate {
   call_intent?: string | null;
   call_intents?: string[];
   is_active?: boolean;
+  notify_on_fail?: boolean;
   sort_order?: number;
   status?: string;
   target_pass_rate?: number;

@@ -1,0 +1,2 @@
+ALTER TABLE eval_criteria
+  ADD COLUMN IF NOT EXISTS notify_on_fail BOOLEAN NOT NULL DEFAULT false;

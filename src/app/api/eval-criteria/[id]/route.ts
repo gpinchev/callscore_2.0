@@ -9,6 +9,7 @@ const updateCriterionSchema = z.object({
   call_intent: z.string().max(100).nullable().optional(),
   call_intents: z.array(z.string().max(100)).max(50).optional(),
   is_active: z.boolean().optional(),
+  notify_on_fail: z.boolean().optional(),
   sort_order: z.number().int().min(0).optional(),
   status: z.enum(["draft", "published"]).optional(),
   target_pass_rate: z.number().min(0).max(1).optional(),

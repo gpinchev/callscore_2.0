@@ -11,6 +11,7 @@ const createCriterionSchema = z.object({
   call_intents: z.array(z.string().max(100)).max(50).optional(),
   sort_order: z.number().int().min(0).default(0),
   is_active: z.boolean().default(true),
+  notify_on_fail: z.boolean().default(false),
   status: z.enum(["draft", "published"]).default("published"),
 });
 
