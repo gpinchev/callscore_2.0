@@ -15,16 +15,22 @@ export default async function OrgLayout({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  const supabase = createServerClient();
 
-  const { data: org } = await supabase
-    .from("organizations")
-    .select("id, name")
-    .eq("id", orgId)
-    .single();
+  let orgExists = false;
+  try {
+    const supabase = createServerClient();
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("id", orgId)
+      .single();
+    orgExists = !!org;
+  } catch {
+    // Supabase unavailable — allow demo org through, block real org IDs
+  }
 
-  if (!org) {
-    if (orgId !== DEMO_ORG_ID) notFound();
+  if (!orgExists && orgId !== DEMO_ORG_ID) {
+    notFound();
   }
 
   return (
