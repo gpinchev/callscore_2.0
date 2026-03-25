@@ -12,14 +12,9 @@ export function EngageTopBar() {
       >
         {/* Logo + divider + wordmark */}
         <div className="flex items-center gap-3">
-          {/* Logo: rounded square with signal-arc icon */}
-          <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="34" height="34" rx="7" fill="#5B6BBF"/>
-            {/* Three curved arcs from bottom-left, like a rotated wifi signal */}
-            <path d="M6 28 Q6 14 20 8" stroke="white" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
-            <path d="M6 28 Q6 18 22 14" stroke="white" strokeWidth="3.5" strokeLinecap="round" fill="none" opacity="0.75"/>
-            <path d="M6 28 Q10 22 26 20" stroke="white" strokeWidth="3.5" strokeLinecap="round" fill="none" opacity="0.5"/>
-          </svg>
+          {/* Logo */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Logo" width={34} height={34} style={{ borderRadius: 7 }} />
           <div className="h-5 w-px bg-white/20" />
           <span className="text-sm font-semibold tracking-[0.15em] text-white">
             ENGAGE
