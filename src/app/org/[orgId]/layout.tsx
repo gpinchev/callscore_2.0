@@ -4,6 +4,9 @@ import { EngageSidebar } from "@/components/layout/engage-sidebar";
 import { CallScoreSubNav } from "@/components/layout/callscore-subnav";
 import { notFound } from "next/navigation";
 
+// Hardcoded demo org — always accessible, DB returns empty → mock data shows
+const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
+
 export default async function OrgLayout({
   children,
   params,
@@ -21,7 +24,7 @@ export default async function OrgLayout({
     .single();
 
   if (!org) {
-    notFound();
+    if (orgId !== DEMO_ORG_ID) notFound();
   }
 
   return (

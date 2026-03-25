@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Organization } from "@/lib/supabase/types";
 
+const DEMO_ORG_ID = "00000000-0000-0000-0000-000000000001";
+
 type OrgWithCost = Organization & { total_eval_cost: number | null };
 
 export default function LandingPage() {
@@ -86,11 +88,27 @@ export default function LandingPage() {
               </Card>
             ))
           ) : (
-            <div className="rounded-lg border border-dashed p-8 text-center">
-              <Building2 className="mx-auto h-10 w-10 text-muted-foreground/50" />
-              <p className="mt-3 text-sm text-muted-foreground">
-                No organizations yet. Create one to get started.
+            <div className="space-y-3">
+              <p className="text-xs text-center text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-3 py-1 inline-block w-full">
+                Sample data — create an org to track real calls
               </p>
+              <Card
+                className="cursor-pointer transition-colors hover:bg-accent/50"
+                onClick={() => router.push(`/org/${DEMO_ORG_ID}/dashboard`)}
+              >
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary/10">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">Cool Air HVAC</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="secondary" className="text-xs">HVAC</Badge>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
