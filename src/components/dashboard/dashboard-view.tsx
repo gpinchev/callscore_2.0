@@ -13,7 +13,8 @@ import { TrendChart } from "./trend-chart";
 import { AttentionList } from "./attention-list";
 import { CallIntentChart } from "./call-intent-chart";
 import { DashboardSkeleton } from "./dashboard-skeleton";
-import { DashboardEmpty } from "./dashboard-empty";
+import { generateMockDashboardData } from "@/lib/mock-dashboard-data";
+// DashboardEmpty replaced by mock data — no longer needed
 import type { DashboardData, DashboardFilters } from "@/lib/dashboard-types";
 
 function filtersToParams(filters: DashboardFilters): URLSearchParams {
@@ -139,25 +140,31 @@ export function DashboardView({ orgId }: Props) {
 
   if (!data) return null;
 
-  // Empty state — no evaluated transcripts
   const hasEvalData = data.overview.totalEvaluations > 0;
+  // Use mock data when no evaluations exist yet
+  const displayData = hasEvalData ? data : generateMockDashboardData(data);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Dashboard</h1>
+        {!hasEvalData && (
+          <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full self-start sm:self-auto">
+            Sample data — run your first evaluation to see real results
+          </span>
+        )}
       </div>
 
       {/* Filter Bar */}
       <FilterBar
         filters={filters}
         onFiltersChange={updateFilters}
-        technicians={data.availableTechnicians}
-        criteria={data.availableCriteria}
+        technicians={displayData.availableTechnicians}
+        criteria={displayData.availableCriteria}
       />
 
-      {/* Call Intent Breakdown — shown regardless of eval status */}
-      {data.callIntentBreakdown.length > 0 && (
+      {/* Call Intent Breakdown */}
+      {displayData.callIntentBreakdown.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
@@ -169,96 +176,90 @@ export function DashboardView({ orgId }: Props) {
             </p>
           </CardHeader>
           <CardContent>
-            <CallIntentChart data={data.callIntentBreakdown} />
+            <CallIntentChart data={displayData.callIntentBreakdown} />
           </CardContent>
         </Card>
       )}
 
-      {!hasEvalData ? (
-        <DashboardEmpty orgId={orgId} />
-      ) : (
-        <>
-          {/* KPI Cards */}
-          <OverviewCards
-            overview={data.overview}
-            sparklineData={data.sparklineData}
-            orgId={orgId}
-            onFilterByCriteria={handleFilterByCriteria}
-          />
+      {/* KPI Cards */}
+      <OverviewCards
+        overview={displayData.overview}
+        sparklineData={displayData.sparklineData}
+        orgId={orgId}
+        onFilterByCriteria={handleFilterByCriteria}
+      />
 
-          {/* Heatmap — only show if >1 technician */}
-          {data.availableTechnicians.length > 1 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  Performance Heatmap
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Click any cell to see related transcripts
-                </p>
-              </CardHeader>
-              <CardContent>
-                <Heatmap data={data.heatmapData} orgId={orgId} />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Criteria Pass Rate Chart */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                Criteria Pass Rates
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Sorted by pass rate — weakest criteria at top
-              </p>
-            </CardHeader>
-            <CardContent>
-              <CriteriaChart
-                data={data.criteriaPassRates}
-                onCriteriaClick={handleFilterByCriteria}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Trend Over Time */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                Trend Over Time
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Toggle technician lines below the chart
-              </p>
-            </CardHeader>
-            <CardContent>
-              <TrendChart
-                data={data.trendData}
-                technicians={data.availableTechnicians}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Needs Attention */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4 text-muted-foreground" />
-                Needs Attention
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Recent transcripts with pass rates below 50%
-              </p>
-            </CardHeader>
-            <CardContent className="p-0">
-              <AttentionList data={data.needsAttention} orgId={orgId} />
-            </CardContent>
-          </Card>
-        </>
+      {/* Heatmap — only show if >1 technician */}
+      {displayData.availableTechnicians.length > 1 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              Performance Heatmap
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Click any cell to see related transcripts
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Heatmap data={displayData.heatmapData} orgId={orgId} />
+          </CardContent>
+        </Card>
       )}
+
+      {/* Criteria Pass Rate Chart */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            Criteria Pass Rates
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Sorted by pass rate — weakest criteria at top
+          </p>
+        </CardHeader>
+        <CardContent>
+          <CriteriaChart
+            data={displayData.criteriaPassRates}
+            onCriteriaClick={handleFilterByCriteria}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Trend Over Time */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            Trend Over Time
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Toggle technician lines below the chart
+          </p>
+        </CardHeader>
+        <CardContent>
+          <TrendChart
+            data={displayData.trendData}
+            technicians={displayData.availableTechnicians}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Needs Attention */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+            Needs Attention
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Recent transcripts with pass rates below 50%
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          <AttentionList data={displayData.needsAttention} orgId={orgId} />
+        </CardContent>
+      </Card>
 
       {loading && data && (
         <div className="fixed bottom-20 right-4 md:bottom-4 rounded-lg bg-card px-3 py-2 text-xs text-muted-foreground shadow-md">
