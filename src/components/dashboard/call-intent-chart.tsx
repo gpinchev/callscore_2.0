@@ -14,9 +14,10 @@ import type { CallIntentCount } from "@/lib/dashboard-types";
 
 interface Props {
   data: CallIntentCount[];
+  color?: string;
 }
 
-export function CallIntentChart({ data }: Props) {
+export function CallIntentChart({ data, color = "#7c3aed" }: Props) {
   return (
     <ResponsiveContainer width="100%" height={Math.max(200, data.length * 40)}>
       <BarChart
@@ -46,7 +47,7 @@ export function CallIntentChart({ data }: Props) {
         />
         <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={28}>
           {data.map((_, i) => (
-            <Cell key={i} fill="#7c3aed" fillOpacity={0.75 + (i === 0 ? 0.25 : 0)} />
+            <Cell key={i} fill={color} fillOpacity={0.75 + (i === 0 ? 0.25 : 0)} />
           ))}
         </Bar>
       </BarChart>

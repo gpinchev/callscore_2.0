@@ -74,6 +74,7 @@ export interface DashboardData {
   availableTechnicians: { id: string; name: string }[];
   availableCriteria: { id: string; name: string }[];
   callIntentBreakdown: CallIntentCount[];
+  callOutcomeBreakdown: CallIntentCount[];
 }
 
 export interface DashboardFilters {

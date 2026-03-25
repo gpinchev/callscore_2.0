@@ -450,6 +450,17 @@ export async function GET(
       .map(([label, count]) => ({ label, count }))
       .sort((a, b) => b.count - a.count);
 
+    const outcomeCounts = new Map<string, number>();
+    for (const t of allTranscripts) {
+      const outcome = (t as Record<string, unknown>).call_outcome;
+      if (typeof outcome === "string" && outcome) {
+        outcomeCounts.set(outcome, (outcomeCounts.get(outcome) ?? 0) + 1);
+      }
+    }
+    const callOutcomeBreakdown = [...outcomeCounts.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+
     return NextResponse.json({
       overview: {
         totalTranscripts,
@@ -479,6 +490,7 @@ export async function GET(
       availableTechnicians: technicians,
       availableCriteria: criteria.map((c) => ({ id: c.id, name: c.name })),
       callIntentBreakdown,
+      callOutcomeBreakdown,
       callBreakdowns,
     });
   } catch (err) {

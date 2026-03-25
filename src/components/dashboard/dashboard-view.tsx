@@ -181,6 +181,24 @@ export function DashboardView({ orgId }: Props) {
         </Card>
       )}
 
+      {/* Call Outcome Breakdown */}
+      {displayData.callOutcomeBreakdown.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              Calls by Outcome
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Number of calls per call outcome
+            </p>
+          </CardHeader>
+          <CardContent>
+            <CallIntentChart data={displayData.callOutcomeBreakdown} color="#10b981" />
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPI Cards */}
       <OverviewCards
         overview={displayData.overview}

@@ -115,6 +115,17 @@ export function generateMockDashboardData(real: DashboardData): DashboardData {
     count: intentCounts[i],
   }));
 
+  const callOutcomeBreakdown = [
+    { label: "Appointment Booked", count: 18 },
+    { label: "Issue Resolved on Call", count: 9 },
+    { label: "Estimate Scheduled", count: 7 },
+    { label: "Left Voicemail", count: 5 },
+    { label: "Rescheduled", count: 4 },
+    { label: "Transferred to Billing", count: 3 },
+    { label: "No Action Needed", count: 2 },
+    { label: "Call Abandoned", count: 1 },
+  ];
+
   return {
     overview: {
       totalTranscripts: 47,
@@ -144,5 +155,6 @@ export function generateMockDashboardData(real: DashboardData): DashboardData {
     availableTechnicians: technicians,
     availableCriteria: criteria,
     callIntentBreakdown,
+    callOutcomeBreakdown,
   };
 }
