@@ -9,6 +9,8 @@ const createCriterionSchema = z.object({
   category: z.string().max(100).nullable().optional(),
   call_intent: z.string().max(100).nullable().optional(),
   call_intents: z.array(z.string().max(100)).max(50).optional(),
+  call_types: z.array(z.string().max(100)).max(20).optional(),
+  call_outcomes: z.array(z.string().max(200)).max(50).optional(),
   sort_order: z.number().int().min(0).default(0),
   is_active: z.boolean().default(true),
   notify_on_fail: z.boolean().default(false),

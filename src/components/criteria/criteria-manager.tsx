@@ -51,7 +51,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ALL_INTENTS } from "@/lib/call-taxonomy";
+import { ALL_INTENTS, ALL_OUTCOMES, CALL_TYPES } from "@/lib/call-taxonomy";
 import type { EvalCriteria, FewShotExample } from "@/lib/supabase/types";
 
 const MOCK_CRITERIA_GROUPS = [
@@ -479,6 +479,33 @@ function CriterionCard({
               </div>
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>
+                  Call Type
+                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">(optional scope)</span>
+                </Label>
+                <MultiSelect
+                  options={CALL_TYPES as unknown as string[]}
+                  selected={criterion.call_types ?? []}
+                  placeholder="All call types"
+                  onChange={(vals) => onFieldChange("call_types", vals)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>
+                  Call Outcome
+                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">(optional scope)</span>
+                </Label>
+                <MultiSelect
+                  options={ALL_OUTCOMES}
+                  selected={criterion.call_outcomes ?? []}
+                  placeholder="All outcomes"
+                  onChange={(vals) => onFieldChange("call_outcomes", vals)}
+                />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor={`desc-${criterion.id}`}>
                 Description — what should the AI check for?
@@ -565,6 +592,78 @@ function CriterionCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ============================================================
+// Generic Multi-Select
+// ============================================================
+
+function MultiSelect({
+  options,
+  selected,
+  placeholder,
+  onChange,
+}: {
+  options: string[];
+  selected: string[];
+  placeholder: string;
+  onChange: (values: string[]) => void;
+}) {
+  const toggle = (val: string) => {
+    if (selected.includes(val)) {
+      onChange(selected.filter((v) => v !== val));
+    } else {
+      onChange([...selected, val]);
+    }
+  };
+
+  const label =
+    selected.length === 0
+      ? placeholder
+      : selected.length === 1
+      ? selected[0]
+      : `${selected.length} selected`;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          <span className={selected.length === 0 ? "text-muted-foreground" : "text-foreground"}>
+            {label}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <div className="max-h-64 overflow-y-auto p-1">
+          {selected.length > 0 && (
+            <button
+              type="button"
+              className="w-full text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => onChange([])}
+            >
+              Clear all
+            </button>
+          )}
+          {options.map((opt) => (
+            <label
+              key={opt}
+              className="flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer hover:bg-accent"
+            >
+              <Checkbox
+                checked={selected.includes(opt)}
+                onCheckedChange={() => toggle(opt)}
+              />
+              <span>{opt}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -848,6 +947,8 @@ function AddCriterionDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [callIntents, setCallIntents] = useState<string[]>(defaultIntent ? [defaultIntent] : []);
+  const [callTypes, setCallTypes] = useState<string[]>([]);
+  const [callOutcomes, setCallOutcomes] = useState<string[]>([]);
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [submitting, setSubmitting] = useState(false);
 
@@ -873,6 +974,8 @@ function AddCriterionDialog({
           description: description.trim(),
           call_intents: callIntents,
           call_intent: callIntents[0] ?? null,
+          call_types: callTypes,
+          call_outcomes: callOutcomes,
           sort_order: sortOrder,
           status,
         }),
@@ -885,6 +988,8 @@ function AddCriterionDialog({
       setName("");
       setDescription("");
       setCallIntents([]);
+      setCallTypes([]);
+      setCallOutcomes([]);
       setStatus("draft");
     } catch {
       toast.error("Failed to create criterion");
@@ -943,6 +1048,32 @@ function AddCriterionDialog({
                   <SelectItem value="published">Published</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>
+                Call Type
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">(optional scope)</span>
+              </Label>
+              <MultiSelect
+                options={CALL_TYPES as unknown as string[]}
+                selected={callTypes}
+                placeholder="All call types"
+                onChange={setCallTypes}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>
+                Call Outcome
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">(optional scope)</span>
+              </Label>
+              <MultiSelect
+                options={ALL_OUTCOMES}
+                selected={callOutcomes}
+                placeholder="All outcomes"
+                onChange={setCallOutcomes}
+              />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">

@@ -131,6 +131,8 @@ export interface EvalCriteria {
   category: string | null;
   call_intent: string | null;
   call_intents: string[];
+  call_types: string[];
+  call_outcomes: string[];
   is_active: boolean;
   notify_on_fail: boolean;
   sort_order: number;
@@ -148,6 +150,8 @@ export interface EvalCriteriaInsert {
   category?: string | null;
   call_intent?: string | null;
   call_intents?: string[];
+  call_types?: string[];
+  call_outcomes?: string[];
   is_active?: boolean;
   notify_on_fail?: boolean;
   sort_order?: number;
@@ -161,6 +165,8 @@ export interface EvalCriteriaUpdate {
   category?: string | null;
   call_intent?: string | null;
   call_intents?: string[];
+  call_types?: string[];
+  call_outcomes?: string[];
   is_active?: boolean;
   notify_on_fail?: boolean;
   sort_order?: number;
