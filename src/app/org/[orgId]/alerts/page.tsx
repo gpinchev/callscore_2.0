@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
-import { Bell, CheckCircle2, XCircle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AlertsTable, type AlertRow } from "@/components/alerts/alerts-table";
 
-const MOCK_ALERT_ROWS = [
-  { date: "Mar 21, 2025 · 9:14 AM", criterion: "Greeting & Proper Introduction", csr: "Marcus Rivera", reasoning: "Agent did not introduce themselves by name at the start of the call. Call began with 'How can I help you?' without proper greeting." },
-  { date: "Mar 20, 2025 · 2:47 PM", criterion: "Empathy & Active Listening", csr: "Priya Patel", reasoning: "Customer expressed frustration about a billing error and agent proceeded without acknowledging the inconvenience." },
-  { date: "Mar 19, 2025 · 4:22 PM", criterion: "Offer Maintenance Plan", csr: "Sarah Chen", reasoning: "Service appointment was confirmed but no attempt was made to upsell the annual maintenance plan to the customer." },
-  { date: "Mar 18, 2025 · 11:03 AM", criterion: "Confirm Appointment Details", csr: "James Okafor", reasoning: "Appointment was scheduled but agent did not repeat back the date, time, and address to confirm accuracy with the customer." },
-  { date: "Mar 17, 2025 · 3:05 PM", criterion: "Closing & Next Steps", csr: "Marcus Rivera", reasoning: "Call ended without summarizing what was agreed upon or informing the customer of expected follow-up timeline." },
+const MOCK_ALERT_ROWS: AlertRow[] = [
+  { id: "mock-1", transcriptId: null, date: "Mar 21, 2025 · 9:14 AM", criterion: "Greeting & Proper Introduction", csr: "Marcus Rivera", intent: "Schedule Service", outcome: "Appointment Booked", reasoning: "Agent did not introduce themselves by name at the start of the call. Call began with 'How can I help you?' without proper greeting." },
+  { id: "mock-2", transcriptId: null, date: "Mar 20, 2025 · 2:47 PM", criterion: "Empathy & Active Listening", csr: "Priya Patel", intent: "Billing Inquiry", outcome: "Issue Resolved", reasoning: "Customer expressed frustration about a billing error and agent proceeded without acknowledging the inconvenience." },
+  { id: "mock-3", transcriptId: null, date: "Mar 19, 2025 · 4:22 PM", criterion: "Offer Maintenance Plan", csr: "Sarah Chen", intent: "Schedule Service", outcome: "Appointment Booked", reasoning: "Service appointment was confirmed but no attempt was made to upsell the annual maintenance plan to the customer." },
+  { id: "mock-4", transcriptId: null, date: "Mar 18, 2025 · 11:03 AM", criterion: "Confirm Appointment Details", csr: "James Okafor", intent: "Schedule Service", outcome: "Appointment Booked", reasoning: "Appointment was scheduled but agent did not repeat back the date, time, and address to confirm accuracy with the customer." },
+  { id: "mock-5", transcriptId: null, date: "Mar 17, 2025 · 3:05 PM", criterion: "Closing & Next Steps", csr: "Marcus Rivera", intent: "General Inquiry", outcome: "No Resolution", reasoning: "Call ended without summarizing what was agreed upon or informing the customer of expected follow-up timeline." },
 ];
 
 export const metadata: Metadata = { title: "Alerts" };
@@ -33,7 +32,7 @@ export default async function AlertsPage({
 
   let criteriaIds: string[] = [];
   let criteriaNames: Record<string, string> = {};
-  let alerts: unknown[] = [];
+  let alertRows: AlertRow[] = [];
 
   try {
     const supabase = createServerClient();
@@ -52,16 +51,39 @@ export default async function AlertsPage({
     if (criteriaIds.length > 0) {
       const { data: failedResults } = await supabase
         .from("eval_results")
-        .select("id, transcript_id, eval_criteria_id, reasoning, transcript_excerpt, created_at, transcripts(id, created_at, raw_transcript, technicians(name))")
+        .select("id, transcript_id, eval_criteria_id, reasoning, created_at, transcripts(id, created_at, call_intent, call_outcome, technicians(name))")
         .in("eval_criteria_id", criteriaIds)
         .eq("passed", false)
         .order("created_at", { ascending: false })
         .limit(100);
-      alerts = failedResults ?? [];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      alertRows = (failedResults ?? []).map((alert: any) => {
+        const tx = alert.transcripts as {
+          id: string;
+          created_at: string;
+          call_intent: string | null;
+          call_outcome: string | null;
+          technicians: { name: string } | null;
+        } | null;
+        return {
+          id: alert.id,
+          transcriptId: alert.transcript_id ?? null,
+          criterion: criteriaNames[alert.eval_criteria_id] ?? "Unknown",
+          csr: tx?.technicians?.name ?? "",
+          date: tx ? formatDate(tx.created_at) : "—",
+          reasoning: alert.reasoning ?? "",
+          intent: tx?.call_intent ?? "",
+          outcome: tx?.call_outcome ?? "",
+        };
+      });
     }
   } catch {
     // Supabase unavailable — show mock alerts below
   }
+
+  const isMock = alertRows.length === 0;
+  const displayRows = isMock ? MOCK_ALERT_ROWS : alertRows;
 
   return (
     <div className="space-y-4">
@@ -78,95 +100,12 @@ export default async function AlertsPage({
         </Badge>
       </div>
 
-      {criteriaIds.length === 0 || alerts.length === 0 ? (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-              Sample data — enable &ldquo;Notify when failed&rdquo; on eval criteria to see real alerts
-            </span>
-          </div>
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-44">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Criterion</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-36">CSR</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Reasoning</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {MOCK_ALERT_ROWS.map((row, i) => (
-                  <tr key={i} className="opacity-70">
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-500 text-xs">{row.date}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
-                        <span className="font-medium text-gray-800">{row.criterion}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{row.csr}</td>
-                    <td className="px-4 py-3 text-gray-500 max-w-sm">
-                      <p className="truncate">{row.reasoning}</p>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-44">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Criterion</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-36">CSR</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Reasoning</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {(alerts as any[]).map((alert) => {
-                const tx = alert.transcripts as unknown as {
-                  id: string;
-                  created_at: string;
-                  raw_transcript: string;
-                  technicians: { name: string } | null;
-                } | null;
-                return (
-                  <tr
-                    key={alert.id}
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() =>
-                      (window.location.href = `/org/${orgId}/transcripts/${alert.transcript_id}`)
-                    }
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-500 text-xs">
-                      {tx ? formatDate(tx.created_at) : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
-                        <span className="font-medium text-gray-800">
-                          {criteriaNames[alert.eval_criteria_id] ?? "Unknown"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {tx?.technicians?.name ?? <span className="text-gray-400">Unassigned</span>}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 max-w-sm">
-                      <p className="truncate">{alert.reasoning ?? "—"}</p>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <AlertsTable
+        orgId={orgId}
+        alerts={displayRows}
+        isMock={isMock}
+        criteriaCount={criteriaIds.length}
+      />
     </div>
   );
 }
