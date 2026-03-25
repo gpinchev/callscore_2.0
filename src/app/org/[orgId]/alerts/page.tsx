@@ -5,11 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { AlertsTable, type AlertRow } from "@/components/alerts/alerts-table";
 
 const MOCK_ALERT_ROWS: AlertRow[] = [
-  { id: "mock-1", transcriptId: null, date: "Mar 21, 2025 · 9:14 AM", criterion: "Greeting & Proper Introduction", csr: "Marcus Rivera", intent: "Schedule Service", outcome: "Appointment Booked", reasoning: "Agent did not introduce themselves by name at the start of the call. Call began with 'How can I help you?' without proper greeting." },
-  { id: "mock-2", transcriptId: null, date: "Mar 20, 2025 · 2:47 PM", criterion: "Empathy & Active Listening", csr: "Priya Patel", intent: "Billing Inquiry", outcome: "Issue Resolved", reasoning: "Customer expressed frustration about a billing error and agent proceeded without acknowledging the inconvenience." },
-  { id: "mock-3", transcriptId: null, date: "Mar 19, 2025 · 4:22 PM", criterion: "Offer Maintenance Plan", csr: "Sarah Chen", intent: "Schedule Service", outcome: "Appointment Booked", reasoning: "Service appointment was confirmed but no attempt was made to upsell the annual maintenance plan to the customer." },
-  { id: "mock-4", transcriptId: null, date: "Mar 18, 2025 · 11:03 AM", criterion: "Confirm Appointment Details", csr: "James Okafor", intent: "Schedule Service", outcome: "Appointment Booked", reasoning: "Appointment was scheduled but agent did not repeat back the date, time, and address to confirm accuracy with the customer." },
-  { id: "mock-5", transcriptId: null, date: "Mar 17, 2025 · 3:05 PM", criterion: "Closing & Next Steps", csr: "Marcus Rivera", intent: "General Inquiry", outcome: "No Resolution", reasoning: "Call ended without summarizing what was agreed upon or informing the customer of expected follow-up timeline." },
+  { id: "mock-1", transcriptId: null, date: "Mar 21, 2025 · 9:14 AM", criterion: "Greeting & Proper Introduction", csr: "Marcus Rivera", callType: "Service", intent: "Schedule Service", outcome: "Appointment Booked", reasoning: "Agent did not introduce themselves by name at the start of the call. Call began with 'How can I help you?' without proper greeting." },
+  { id: "mock-2", transcriptId: null, date: "Mar 20, 2025 · 2:47 PM", criterion: "Empathy & Active Listening", csr: "Priya Patel", callType: "Billing", intent: "Billing Inquiry", outcome: "Issue Resolved", reasoning: "Customer expressed frustration about a billing error and agent proceeded without acknowledging the inconvenience." },
+  { id: "mock-3", transcriptId: null, date: "Mar 19, 2025 · 4:22 PM", criterion: "Offer Maintenance Plan", csr: "Sarah Chen", callType: "Sales", intent: "Maintenance Plan Upsell", outcome: "Appointment Booked", reasoning: "Service appointment was confirmed but no attempt was made to upsell the annual maintenance plan to the customer." },
+  { id: "mock-4", transcriptId: null, date: "Mar 18, 2025 · 11:03 AM", criterion: "Confirm Appointment Details", csr: "James Okafor", callType: "Service", intent: "Schedule Service", outcome: "Appointment Booked", reasoning: "Appointment was scheduled but agent did not repeat back the date, time, and address to confirm accuracy with the customer." },
+  { id: "mock-5", transcriptId: null, date: "Mar 17, 2025 · 3:05 PM", criterion: "Closing & Next Steps", csr: "Marcus Rivera", callType: "Service", intent: "Follow-Up Check", outcome: "No Resolution", reasoning: "Call ended without summarizing what was agreed upon or informing the customer of expected follow-up timeline." },
 ];
 
 export const metadata: Metadata = { title: "Alerts" };
@@ -51,7 +51,7 @@ export default async function AlertsPage({
     if (criteriaIds.length > 0) {
       const { data: failedResults } = await supabase
         .from("eval_results")
-        .select("id, transcript_id, eval_criteria_id, reasoning, created_at, transcripts(id, created_at, call_intent, call_outcome, technicians(name))")
+        .select("id, transcript_id, eval_criteria_id, reasoning, created_at, transcripts(id, created_at, call_type, call_intent, call_outcome, technicians(name))")
         .in("eval_criteria_id", criteriaIds)
         .eq("passed", false)
         .order("created_at", { ascending: false })
@@ -62,6 +62,7 @@ export default async function AlertsPage({
         const tx = alert.transcripts as {
           id: string;
           created_at: string;
+          call_type: string | null;
           call_intent: string | null;
           call_outcome: string | null;
           technicians: { name: string } | null;
@@ -73,6 +74,7 @@ export default async function AlertsPage({
           csr: tx?.technicians?.name ?? "",
           date: tx ? formatDate(tx.created_at) : "—",
           reasoning: alert.reasoning ?? "",
+          callType: tx?.call_type ?? "",
           intent: tx?.call_intent ?? "",
           outcome: tx?.call_outcome ?? "",
         };

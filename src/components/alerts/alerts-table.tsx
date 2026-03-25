@@ -19,6 +19,7 @@ export type AlertRow = {
   csr: string;
   date: string;
   reasoning: string;
+  callType: string;
   intent: string;
   outcome: string;
 };
@@ -32,12 +33,13 @@ interface Props {
 
 export function AlertsTable({ orgId, alerts, isMock }: Props) {
   const router = useRouter();
-  const [csrFilter, setCsrFilter] = useState("all");
+  const [callTypeFilter, setCallTypeFilter] = useState("all");
   const [intentFilter, setIntentFilter] = useState("all");
   const [outcomeFilter, setOutcomeFilter] = useState("all");
+  const [csrFilter, setCsrFilter] = useState("all");
 
-  const csrs = useMemo(
-    () => [...new Set(alerts.map((a) => a.csr).filter(Boolean))].sort(),
+  const callTypes = useMemo(
+    () => [...new Set(alerts.map((a) => a.callType).filter(Boolean))].sort(),
     [alerts]
   );
   const intents = useMemo(
@@ -48,20 +50,25 @@ export function AlertsTable({ orgId, alerts, isMock }: Props) {
     () => [...new Set(alerts.map((a) => a.outcome).filter(Boolean))].sort(),
     [alerts]
   );
+  const csrs = useMemo(
+    () => [...new Set(alerts.map((a) => a.csr).filter(Boolean))].sort(),
+    [alerts]
+  );
 
   const filtered = useMemo(
     () =>
       alerts.filter((a) => {
-        if (csrFilter !== "all" && a.csr !== csrFilter) return false;
+        if (callTypeFilter !== "all" && a.callType !== callTypeFilter) return false;
         if (intentFilter !== "all" && a.intent !== intentFilter) return false;
         if (outcomeFilter !== "all" && a.outcome !== outcomeFilter) return false;
+        if (csrFilter !== "all" && a.csr !== csrFilter) return false;
         return true;
       }),
-    [alerts, csrFilter, intentFilter, outcomeFilter]
+    [alerts, callTypeFilter, intentFilter, outcomeFilter, csrFilter]
   );
 
   const anyFilter =
-    csrFilter !== "all" || intentFilter !== "all" || outcomeFilter !== "all";
+    callTypeFilter !== "all" || intentFilter !== "all" || outcomeFilter !== "all" || csrFilter !== "all";
 
   return (
     <div className="space-y-3">
@@ -75,6 +82,42 @@ export function AlertsTable({ orgId, alerts, isMock }: Props) {
       <div className="flex flex-wrap gap-2 items-center">
         <Filter className="h-4 w-4 text-muted-foreground" />
 
+        <Select value={callTypeFilter} onValueChange={setCallTypeFilter}>
+          <SelectTrigger className="w-[170px] h-8 text-xs">
+            <SelectValue placeholder="Call Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All call types</SelectItem>
+            {callTypes.map((c) => (
+              <SelectItem key={c} value={c}>{c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={intentFilter} onValueChange={setIntentFilter}>
+          <SelectTrigger className="w-[200px] h-8 text-xs">
+            <SelectValue placeholder="Intent" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All intents</SelectItem>
+            {intents.map((i) => (
+              <SelectItem key={i} value={i}>{i}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={outcomeFilter} onValueChange={setOutcomeFilter}>
+          <SelectTrigger className="w-[200px] h-8 text-xs">
+            <SelectValue placeholder="Outcome" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All outcomes</SelectItem>
+            {outcomes.map((o) => (
+              <SelectItem key={o} value={o}>{o}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select value={csrFilter} onValueChange={setCsrFilter}>
           <SelectTrigger className="w-[140px] h-8 text-xs">
             <SelectValue placeholder="CSR" />
@@ -87,39 +130,16 @@ export function AlertsTable({ orgId, alerts, isMock }: Props) {
           </SelectContent>
         </Select>
 
-        <Select value={intentFilter} onValueChange={setIntentFilter}>
-          <SelectTrigger className="w-[190px] h-8 text-xs">
-            <SelectValue placeholder="Call Intent" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All intents</SelectItem>
-            {intents.map((i) => (
-              <SelectItem key={i} value={i}>{i}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={outcomeFilter} onValueChange={setOutcomeFilter}>
-          <SelectTrigger className="w-[190px] h-8 text-xs">
-            <SelectValue placeholder="Call Outcome" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All outcomes</SelectItem>
-            {outcomes.map((o) => (
-              <SelectItem key={o} value={o}>{o}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         {anyFilter && (
           <Button
             variant="ghost"
             size="sm"
             className="h-8 text-xs"
             onClick={() => {
-              setCsrFilter("all");
+              setCallTypeFilter("all");
               setIntentFilter("all");
               setOutcomeFilter("all");
+              setCsrFilter("all");
             }}
           >
             Clear filters
@@ -133,17 +153,18 @@ export function AlertsTable({ orgId, alerts, isMock }: Props) {
           <thead>
             <tr className="border-b bg-gray-50">
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-44">Date</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">Call Type</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Criterion</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">CSR</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-40">Intent</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-40">Outcome</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">CSR</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Reasoning</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
                   No alerts match the current filters.
                 </td>
               </tr>
@@ -166,12 +187,18 @@ export function AlertsTable({ orgId, alerts, isMock }: Props) {
                     {alert.date}
                   </td>
                   <td className="px-4 py-3">
+                    {alert.callType ? (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-blue-200 bg-blue-50 text-blue-700">
+                        {alert.callType}
+                      </span>
+                    ) : <span className="text-gray-400 text-xs">—</span>}
+                  </td>
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0" />
                       <span className="font-medium text-gray-800">{alert.criterion}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{alert.csr || <span className="text-gray-400">—</span>}</td>
                   <td className="px-4 py-3">
                     {alert.intent ? (
                       <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border border-violet-200 bg-violet-50 text-violet-700">
@@ -186,6 +213,7 @@ export function AlertsTable({ orgId, alerts, isMock }: Props) {
                       </span>
                     ) : <span className="text-gray-400 text-xs">—</span>}
                   </td>
+                  <td className="px-4 py-3 text-gray-600">{alert.csr || <span className="text-gray-400">—</span>}</td>
                   <td className="px-4 py-3 text-gray-500 max-w-xs">
                     <p className="truncate">{alert.reasoning || "—"}</p>
                   </td>
