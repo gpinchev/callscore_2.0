@@ -12,38 +12,53 @@ export default async function TranscriptsPage({
 }) {
   const { orgId } = await params;
 
-  // Fill any NULL call fields with deterministic mock data (idempotent)
-  await seedTranscriptFields(orgId);
-
-  const supabase = createServerClient();
-
-  // Try to join customers; fall back gracefully if the table doesn't exist yet
-  let { data: transcripts, error: txError } = await supabase
-    .from("transcripts")
-    .select("*, technicians(name), customers(name)")
-    .eq("organization_id", orgId)
-    .order("created_at", { ascending: false });
-
-  if (txError) {
-    const fallback = await supabase
-      .from("transcripts")
-      .select("*, technicians(name)")
-      .eq("organization_id", orgId)
-      .order("created_at", { ascending: false });
-    transcripts = fallback.data;
+  // Best-effort seed — never crash the page
+  try {
+    await seedTranscriptFields(orgId);
+  } catch {
+    // ignore
   }
 
-  const { data: technicians } = await supabase
-    .from("technicians")
-    .select("id, name")
-    .eq("organization_id", orgId)
-    .order("name");
+  let transcripts: unknown[] = [];
+  let technicians: { id: string; name: string }[] = [];
+
+  try {
+    const supabase = createServerClient();
+
+    // Try with customers join first; fall back without it
+    const { data: txData, error: txError } = await supabase
+      .from("transcripts")
+      .select("*, technicians(name), customers(name)")
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: false });
+
+    if (txError) {
+      const { data: fallback } = await supabase
+        .from("transcripts")
+        .select("*, technicians(name)")
+        .eq("organization_id", orgId)
+        .order("created_at", { ascending: false });
+      transcripts = fallback || [];
+    } else {
+      transcripts = txData || [];
+    }
+
+    const { data: techData } = await supabase
+      .from("technicians")
+      .select("id, name")
+      .eq("organization_id", orgId)
+      .order("name");
+    technicians = techData || [];
+  } catch {
+    // Supabase unavailable — TranscriptList will show mock rows
+  }
 
   return (
     <TranscriptList
       orgId={orgId}
-      transcripts={transcripts || []}
-      technicians={technicians || []}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      transcripts={transcripts as any}
+      technicians={technicians}
     />
   );
 }

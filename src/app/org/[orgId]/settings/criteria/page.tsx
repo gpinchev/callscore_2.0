@@ -10,18 +10,20 @@ export default async function CriteriaPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  const supabase = createServerClient();
 
-  const { data: criteria } = await supabase
-    .from("eval_criteria")
-    .select("*, few_shot_examples(*)")
-    .eq("organization_id", orgId)
-    .order("sort_order");
+  let criteria: Parameters<typeof CriteriaManager>[0]["initialCriteria"] = [];
 
-  return (
-    <CriteriaManager
-      orgId={orgId}
-      initialCriteria={criteria || []}
-    />
-  );
+  try {
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from("eval_criteria")
+      .select("*, few_shot_examples(*)")
+      .eq("organization_id", orgId)
+      .order("sort_order");
+    criteria = data || [];
+  } catch {
+    // Supabase unavailable — CriteriaManager will show mock criteria
+  }
+
+  return <CriteriaManager orgId={orgId} initialCriteria={criteria} />;
 }

@@ -11,21 +11,27 @@ export default async function TechniciansPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  const supabase = createServerClient();
 
-  const { data: technicians } = await supabase
-    .from("technicians")
-    .select("*")
-    .eq("organization_id", orgId)
-    .order("created_at");
+  let techniciansWithStats: Parameters<typeof TechnicianManagement>[0]["initialTechnicians"] = [];
 
-  const techIds = (technicians || []).map((t) => t.id);
-  const statsMap = await computeTechnicianStats(orgId, techIds);
+  try {
+    const supabase = createServerClient();
+    const { data: technicians } = await supabase
+      .from("technicians")
+      .select("*")
+      .eq("organization_id", orgId)
+      .order("created_at");
 
-  const techniciansWithStats = (technicians || []).map((tech) => ({
-    ...tech,
-    stats: statsMap.get(tech.id) || { totalCalls: 0, passRate: null },
-  }));
+    const techIds = (technicians || []).map((t) => t.id);
+    const statsMap = await computeTechnicianStats(orgId, techIds);
+
+    techniciansWithStats = (technicians || []).map((tech) => ({
+      ...tech,
+      stats: statsMap.get(tech.id) || { totalCalls: 0, passRate: null },
+    }));
+  } catch {
+    // Supabase unavailable — TechnicianManagement will show mock CSRs
+  }
 
   return <TechnicianManagement orgId={orgId} initialTechnicians={techniciansWithStats} />;
 }

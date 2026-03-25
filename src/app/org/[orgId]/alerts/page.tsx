@@ -30,32 +30,38 @@ export default async function AlertsPage({
   params: Promise<{ orgId: string }>;
 }) {
   const { orgId } = await params;
-  const supabase = createServerClient();
 
-  // Fetch criteria that have notify_on_fail = true
-  const { data: notifyCriteria } = await supabase
-    .from("eval_criteria")
-    .select("id, name")
-    .eq("organization_id", orgId)
-    .eq("notify_on_fail", true);
+  let criteriaIds: string[] = [];
+  let criteriaNames: Record<string, string> = {};
+  let alerts: unknown[] = [];
 
-  const criteriaIds = (notifyCriteria ?? []).map((c) => c.id);
-  const criteriaNames = Object.fromEntries(
-    (notifyCriteria ?? []).map((c) => [c.id, c.name])
-  );
+  try {
+    const supabase = createServerClient();
 
-  // Fetch failed eval results for those criteria
-  const { data: failedResults } = criteriaIds.length > 0
-    ? await supabase
+    const { data: notifyCriteria } = await supabase
+      .from("eval_criteria")
+      .select("id, name")
+      .eq("organization_id", orgId)
+      .eq("notify_on_fail", true);
+
+    criteriaIds = (notifyCriteria ?? []).map((c) => c.id);
+    criteriaNames = Object.fromEntries(
+      (notifyCriteria ?? []).map((c) => [c.id, c.name])
+    );
+
+    if (criteriaIds.length > 0) {
+      const { data: failedResults } = await supabase
         .from("eval_results")
         .select("id, transcript_id, eval_criteria_id, reasoning, transcript_excerpt, created_at, transcripts(id, created_at, raw_transcript, technicians(name))")
         .in("eval_criteria_id", criteriaIds)
         .eq("passed", false)
         .order("created_at", { ascending: false })
-        .limit(100)
-    : { data: [] };
-
-  const alerts = failedResults ?? [];
+        .limit(100);
+      alerts = failedResults ?? [];
+    }
+  } catch {
+    // Supabase unavailable — show mock alerts below
+  }
 
   return (
     <div className="space-y-4">
@@ -121,7 +127,8 @@ export default async function AlertsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {alerts.map((alert) => {
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(alerts as any[]).map((alert) => {
                 const tx = alert.transcripts as unknown as {
                   id: string;
                   created_at: string;
