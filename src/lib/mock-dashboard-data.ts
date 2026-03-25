@@ -18,15 +18,15 @@ const MOCK_CRITERIA = [
 const PASS_RATES = [0.55, 0.63, 0.71, 0.78, 0.84, 0.89, 0.92];
 const EVAL_COUNTS = [11, 14, 16, 13, 18, 12, 15];
 
-export function generateMockDashboardData(real: DashboardData): DashboardData {
+export function generateMockDashboardData(real: DashboardData | null): DashboardData {
   const technicians =
-    real.availableTechnicians.length > 0
-      ? real.availableTechnicians
+    (real?.availableTechnicians.length ?? 0) > 0
+      ? real!.availableTechnicians
       : MOCK_TECHNICIANS;
 
   const criteria =
-    real.availableCriteria.length > 0
-      ? real.availableCriteria
+    (real?.availableCriteria.length ?? 0) > 0
+      ? real!.availableCriteria
       : MOCK_CRITERIA;
 
   // 30-day sparkline
