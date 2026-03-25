@@ -101,7 +101,7 @@ export default async function AlertsPage({
             </thead>
             <tbody className="divide-y divide-gray-100">
               {alerts.map((alert) => {
-                const tx = alert.transcripts as {
+                const tx = alert.transcripts as unknown as {
                   id: string;
                   created_at: string;
                   raw_transcript: string;
