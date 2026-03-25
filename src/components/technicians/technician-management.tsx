@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+
+const MOCK_TECHNICIANS = [
+  { name: "Marcus Rivera", role: "Senior CSR", specialties: ["HVAC", "Scheduling"], initials: "MR", passRate: 0.91, totalCalls: 47 },
+  { name: "Priya Patel", role: "CSR", specialties: ["Sales", "Billing"], initials: "PP", passRate: 0.78, totalCalls: 34 },
+  { name: "James Okafor", role: "CSR", specialties: ["Service Repair"], initials: "JO", passRate: 0.65, totalCalls: 28 },
+];
 import {
   Plus,
   Phone,
@@ -163,22 +169,15 @@ export function TechnicianManagement({ orgId, initialTechnicians }: Props) {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">CSRs</h1>
-        </div>
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <Users className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">No CSRs yet</h3>
-            <p className="text-muted-foreground mb-6 max-w-md">
-              Add CSRs to track their call performance, generate practice
-              scenarios, and see individual improvement over time.
-            </p>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+              Sample data — add your first CSR to track real performance
+            </span>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={openCreate}>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Add First CSR
+                  Add CSR
                 </Button>
               </DialogTrigger>
               <TechnicianDialog
@@ -193,8 +192,44 @@ export function TechnicianManagement({ orgId, initialTechnicians }: Props) {
                 isEdit={false}
               />
             </Dialog>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {MOCK_TECHNICIANS.map((tech) => {
+            const avatarColor = tech.passRate >= 0.8 ? "bg-green-100 text-green-700" : tech.passRate >= 0.5 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700";
+            const rateColor = tech.passRate >= 0.8 ? "text-green-600" : tech.passRate >= 0.5 ? "text-amber-600" : "text-red-600";
+            return (
+              <Card key={tech.name} className="opacity-70">
+                <CardContent className="p-5">
+                  <div className="flex items-start gap-4">
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${avatarColor}`}>
+                      {tech.initials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-medium truncate">{tech.name}</h3>
+                      <p className="text-sm text-muted-foreground truncate">{tech.role}</p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {tech.specialties.map((s) => (
+                          <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 border-t pt-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Pass Rate</p>
+                      <p className={`text-lg font-semibold ${rateColor}`}>{Math.round(tech.passRate * 100)}%</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total Calls</p>
+                      <p className="text-lg font-semibold">{tech.totalCalls}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     );
   }

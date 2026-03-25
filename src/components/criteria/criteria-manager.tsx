@@ -54,6 +54,29 @@ import { toast } from "sonner";
 import { ALL_INTENTS } from "@/lib/call-taxonomy";
 import type { EvalCriteria, FewShotExample } from "@/lib/supabase/types";
 
+const MOCK_CRITERIA_GROUPS = [
+  {
+    intent: "Schedule Service",
+    items: [
+      { name: "Greeting & Proper Introduction", description: "Agent introduces themselves by name and company within the first 15 seconds of the call." },
+      { name: "Confirm Appointment Details", description: "Agent reads back the scheduled date, time window, and address before ending the call." },
+    ],
+  },
+  {
+    intent: "Emergency Repair",
+    items: [
+      { name: "Empathy & Urgency Acknowledgment", description: "Agent acknowledges the urgency of the situation and expresses empathy before collecting details." },
+      { name: "Same-Day Availability Check", description: "Agent proactively checks same-day or next-available dispatch before offering standard scheduling." },
+    ],
+  },
+  {
+    intent: "New Installation Quote",
+    items: [
+      { name: "Offer Maintenance Plan", description: "Agent mentions and explains the annual maintenance plan at least once during the interaction." },
+    ],
+  },
+];
+
 
 type CriterionWithExamples = EvalCriteria & {
   few_shot_examples: FewShotExample[];
@@ -270,19 +293,42 @@ export function CriteriaManager({ orgId, initialCriteria }: Props) {
       </div>
 
       {criteria.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <BookOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h2 className="text-lg font-medium mb-2">No eval criteria yet</h2>
-            <p className="text-muted-foreground mb-6 max-w-sm">
-              Add criteria to define how your calls will be evaluated by AI.
-            </p>
-            <Button onClick={() => openAddForIntent(null)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add First Criterion
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+              Sample data — add your first criterion to start evaluating calls
+            </span>
+          </div>
+          {MOCK_CRITERIA_GROUPS.map(({ intent, items }) => (
+            <div key={intent}>
+              <div className="flex items-center mb-2">
+                <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-violet-400" />
+                  {intent}
+                  <span className="text-xs font-normal text-gray-400">({items.length})</span>
+                </h2>
+              </div>
+              <div className="space-y-2">
+                {items.map((mc, i) => (
+                  <Card key={i} className="opacity-70">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <GripVertical className="h-4 w-4 text-gray-300 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 text-sm">{mc.name}</span>
+                            <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-200 bg-emerald-50">published</Badge>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-0.5 truncate">{mc.description}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="space-y-6">
           {/* Grouped by intent */}
