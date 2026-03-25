@@ -1,20 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, Building2, Loader2 } from "lucide-react";
+import { Mail, Building2, Loader2, ListChecks, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MultiEmailInput } from "@/components/ui/multi-email-input";
+import { CallTaxonomySettings } from "@/components/settings/call-taxonomy-settings";
 import { toast } from "sonner";
 import type { Organization } from "@/lib/supabase/types";
 
 interface Props {
   org: Organization;
+  orgId: string;
 }
 
-export function SettingsForm({ org }: Props) {
+export function SettingsForm({ org, orgId }: Props) {
   const [notificationEmails, setNotificationEmails] = useState<string[]>(
     Array.isArray(org.notification_email) ? org.notification_email : []
   );
@@ -42,7 +45,7 @@ export function SettingsForm({ org }: Props) {
   }
 
   return (
-    <div className="space-y-6 max-w-lg">
+    <div className="space-y-6 max-w-2xl">
       {/* Organization Info */}
       <Card>
         <CardHeader>
@@ -95,6 +98,30 @@ export function SettingsForm({ org }: Props) {
               emails to disable notifications.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Call Taxonomy */}
+      <CallTaxonomySettings org={org} />
+
+      {/* Eval Criteria */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ListChecks className="h-4 w-4 text-muted-foreground" />
+            Eval Criteria
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3">
+            Define the criteria your calls are evaluated against.
+          </p>
+          <Link href={`/org/${orgId}/settings/criteria`}>
+            <Button variant="outline" className="gap-2">
+              Manage Eval Criteria
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </Link>
         </CardContent>
       </Card>
 

@@ -1,7 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server";
-import { Sidebar } from "@/components/layout/sidebar";
-import { MobileNav } from "@/components/layout/mobile-nav";
-import { Header } from "@/components/layout/header";
+import { EngageTopBar } from "@/components/layout/engage-top-bar";
+import { EngageSidebar } from "@/components/layout/engage-sidebar";
+import { CallScoreSubNav } from "@/components/layout/callscore-subnav";
 import { notFound } from "next/navigation";
 
 export default async function OrgLayout({
@@ -25,15 +25,17 @@ export default async function OrgLayout({
   }
 
   return (
-    <div className="flex h-screen">
-      <Sidebar orgId={orgId} />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header orgId={orgId} orgName={org.name} />
-        <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6">
-          {children}
-        </main>
+    <div className="flex h-screen flex-col">
+      <EngageTopBar />
+      <div className="flex flex-1 overflow-hidden">
+        <EngageSidebar orgId={orgId} />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <CallScoreSubNav orgId={orgId} />
+          <main className="flex-1 overflow-y-auto bg-gray-50 p-6">
+            {children}
+          </main>
+        </div>
       </div>
-      <MobileNav orgId={orgId} />
     </div>
   );
 }

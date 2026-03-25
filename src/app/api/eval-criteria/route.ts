@@ -7,6 +7,8 @@ const createCriterionSchema = z.object({
   name: z.string().min(1).max(200),
   description: z.string().min(1).max(2000),
   category: z.string().max(100).nullable().optional(),
+  call_intent: z.string().max(100).nullable().optional(),
+  call_intents: z.array(z.string().max(100)).max(50).optional(),
   sort_order: z.number().int().min(0).default(0),
   is_active: z.boolean().default(true),
   status: z.enum(["draft", "published"]).default("published"),

@@ -102,7 +102,7 @@ export function TechnicianManagement({ orgId, initialTechnicians }: Props) {
             t.id === editingTech.id ? { ...updated, stats: editingTech.stats } : t
           )
         );
-        toast.success("Technician updated");
+        toast.success("CSR updated");
       } else {
         // Create
         const res = await fetch(`/api/organizations/${orgId}/technicians`, {
@@ -120,11 +120,11 @@ export function TechnicianManagement({ orgId, initialTechnicians }: Props) {
           ...prev,
           { ...created, stats: { totalCalls: 0, passRate: null } },
         ]);
-        toast.success("Technician added");
+        toast.success("CSR added");
       }
       setDialogOpen(false);
     } catch {
-      toast.error(editingTech ? "Failed to update technician" : "Failed to add technician");
+      toast.error(editingTech ? "Failed to update CSR" : "Failed to add CSR");
     } finally {
       setSaving(false);
     }
@@ -136,9 +136,9 @@ export function TechnicianManagement({ orgId, initialTechnicians }: Props) {
       const res = await fetch(`/api/technicians/${techId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
       setTechnicians((prev) => prev.filter((t) => t.id !== techId));
-      toast.success("Technician removed");
+      toast.success("CSR removed");
     } catch {
-      toast.error("Failed to delete technician");
+      toast.error("Failed to delete CSR");
     } finally {
       setDeleting(null);
     }
@@ -162,23 +162,23 @@ export function TechnicianManagement({ orgId, initialTechnicians }: Props) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Technicians</h1>
+          <h1 className="text-2xl font-semibold">CSRs</h1>
         </div>
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="text-lg font-medium mb-2">No technicians yet</h3>
+            <h3 className="text-lg font-medium mb-2">No CSRs yet</h3>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Add technicians to track their call performance, generate practice
+              Add CSRs to track their call performance, generate practice
               scenarios, and see individual improvement over time.
             </p>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={openCreate}>
                   <UserPlus className="h-4 w-4 mr-2" />
-                  Add First Technician
+                  Add First CSR
                 </Button>
               </DialogTrigger>
               <TechnicianDialog
@@ -202,12 +202,12 @@ export function TechnicianManagement({ orgId, initialTechnicians }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Technicians</h1>
+        <h1 className="text-2xl font-semibold">CSRs</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4 mr-2" />
-              Add Technician
+              Add CSR
             </Button>
           </DialogTrigger>
           <TechnicianDialog
@@ -265,7 +265,7 @@ export function TechnicianManagement({ orgId, initialTechnicians }: Props) {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete technician?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete CSR?</AlertDialogTitle>
                         <AlertDialogDescription>
                           This will remove {tech.name} and unlink all their
                           transcripts. This cannot be undone.
@@ -391,7 +391,7 @@ function TechnicianDialog({
     <DialogContent>
       <DialogHeader>
         <DialogTitle>
-          {isEdit ? "Edit Technician" : "Add Technician"}
+          {isEdit ? "Edit CSR" : "Add CSR"}
         </DialogTitle>
       </DialogHeader>
       <div className="space-y-4 pt-2">
@@ -427,7 +427,7 @@ function TechnicianDialog({
           disabled={!name.trim() || saving}
           className="w-full"
         >
-          {saving ? "Saving..." : isEdit ? "Save Changes" : "Add Technician"}
+          {saving ? "Saving..." : isEdit ? "Save Changes" : "Add CSR"}
         </Button>
       </div>
     </DialogContent>

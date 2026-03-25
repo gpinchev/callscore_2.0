@@ -3,7 +3,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { computeTechnicianStats } from "@/lib/technician-stats";
 import { TechnicianManagement } from "@/components/technicians/technician-management";
 
-export const metadata: Metadata = { title: "Technicians" };
+export const metadata: Metadata = { title: "CSRs" };
 
 export default async function TechniciansPage({
   params,

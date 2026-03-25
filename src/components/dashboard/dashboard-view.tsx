@@ -11,6 +11,7 @@ import { Heatmap } from "./heatmap";
 import { CriteriaChart } from "./criteria-chart";
 import { TrendChart } from "./trend-chart";
 import { AttentionList } from "./attention-list";
+import { CallIntentChart } from "./call-intent-chart";
 import { DashboardSkeleton } from "./dashboard-skeleton";
 import { DashboardEmpty } from "./dashboard-empty";
 import type { DashboardData, DashboardFilters } from "@/lib/dashboard-types";
@@ -154,6 +155,24 @@ export function DashboardView({ orgId }: Props) {
         technicians={data.availableTechnicians}
         criteria={data.availableCriteria}
       />
+
+      {/* Call Intent Breakdown — shown regardless of eval status */}
+      {data.callIntentBreakdown.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              Calls by Intent
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Number of calls per call intent
+            </p>
+          </CardHeader>
+          <CardContent>
+            <CallIntentChart data={data.callIntentBreakdown} />
+          </CardContent>
+        </Card>
+      )}
 
       {!hasEvalData ? (
         <DashboardEmpty orgId={orgId} />

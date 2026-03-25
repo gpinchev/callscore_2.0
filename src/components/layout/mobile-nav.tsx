@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { label: "Record", href: "record", icon: Mic },
   { label: "Dashboard", href: "dashboard", icon: LayoutDashboard },
-  { label: "Transcripts", href: "transcripts", icon: FileText },
+  { label: "Calls", href: "transcripts", icon: FileText },
   { label: "Techs", href: "technicians", icon: Users },
   { label: "Settings", href: "settings", icon: Settings },
 ];

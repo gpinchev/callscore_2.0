@@ -23,6 +23,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -33,6 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { AudioPlayer } from "./audio-player";
+import { CALL_TYPES, getIntents, getOutcomes } from "@/lib/call-taxonomy";
 import type { Transcript, EvalResult } from "@/lib/supabase/types";
 
 type DiarizedSegment = {
@@ -101,7 +109,46 @@ export function TranscriptDetail({ orgId, transcript: initialTranscript, initial
   const [deleting, setDeleting] = useState(false);
   const [evaluating, setEvaluating] = useState(false);
   const [expandedResult, setExpandedResult] = useState<string | null>(null);
+  const [callType, setCallType] = useState<string>(transcript.call_type ?? "");
+  const [callIntent, setCallIntent] = useState<string>(transcript.call_intent ?? "");
+  const [callOutcome, setCallOutcome] = useState<string>(transcript.call_outcome ?? "");
   const hasTriggeredEval = useRef(false);
+
+  const intentOptions = getIntents(callType);
+  const outcomeOptions = getOutcomes(callType);
+
+  async function patchTranscript(fields: { call_type?: string | null; call_intent?: string | null; call_outcome?: string | null }) {
+    const res = await fetch(`/api/transcripts/${transcript.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    if (!res.ok) toast.error("Failed to save");
+  }
+
+  function handleCallTypeChange(value: string) {
+    const newVal = value === "__none__" ? null : value;
+    setCallType(newVal ?? "");
+    // Clear intent and outcome when type changes — they're now invalid
+    setCallIntent("");
+    setCallOutcome("");
+    setTranscript((prev) => ({ ...prev, call_type: newVal, call_intent: null, call_outcome: null }));
+    patchTranscript({ call_type: newVal, call_intent: null, call_outcome: null });
+  }
+
+  function handleCallIntentChange(value: string) {
+    const newVal = value === "__none__" ? null : value;
+    setCallIntent(newVal ?? "");
+    setTranscript((prev) => ({ ...prev, call_intent: newVal }));
+    patchTranscript({ call_intent: newVal });
+  }
+
+  function handleCallOutcomeChange(value: string) {
+    const newVal = value === "__none__" ? null : value;
+    setCallOutcome(newVal ?? "");
+    setTranscript((prev) => ({ ...prev, call_outcome: newVal }));
+    patchTranscript({ call_outcome: newVal });
+  }
 
   const source =
     SOURCE_CONFIG[transcript.source as keyof typeof SOURCE_CONFIG] ||
@@ -306,6 +353,52 @@ export function TranscriptDetail({ orgId, transcript: initialTranscript, initial
             {formatDuration(transcript.audio_duration_seconds)}
           </span>
         )}
+        {/* Call Type */}
+        <Select value={callType || "__none__"} onValueChange={handleCallTypeChange}>
+          <SelectTrigger className="h-7 w-[175px] text-xs border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
+            <SelectValue placeholder="Call Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— Call Type</SelectItem>
+            {CALL_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Intent — only enabled once a call type is selected */}
+        <Select
+          value={callIntent || "__none__"}
+          onValueChange={handleCallIntentChange}
+          disabled={!callType}
+        >
+          <SelectTrigger className="h-7 w-[200px] text-xs border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50">
+            <SelectValue placeholder="Intent" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— Intent</SelectItem>
+            {intentOptions.map((i) => (
+              <SelectItem key={i} value={i}>{i}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Outcome — only enabled once a call type is selected */}
+        <Select
+          value={callOutcome || "__none__"}
+          onValueChange={handleCallOutcomeChange}
+          disabled={!callType}
+        >
+          <SelectTrigger className="h-7 w-[200px] text-xs border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">
+            <SelectValue placeholder="Outcome" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">— Outcome</SelectItem>
+            {outcomeOptions.map((o) => (
+              <SelectItem key={o} value={o}>{o}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Summary */}

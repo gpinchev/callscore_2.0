@@ -39,7 +39,7 @@ export function AttentionList({ data, orgId }: Props) {
         <thead>
           <tr className="border-b text-left text-muted-foreground">
             <th className="px-3 py-2 font-medium">Date</th>
-            <th className="px-3 py-2 font-medium">Technician</th>
+            <th className="px-3 py-2 font-medium">CSR</th>
             <th className="hidden px-3 py-2 font-medium sm:table-cell">
               Service Type
             </th>

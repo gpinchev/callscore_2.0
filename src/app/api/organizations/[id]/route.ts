@@ -2,12 +2,19 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { z } from "zod";
 
+const taxonomyEntrySchema = z.object({
+  callType: z.string().min(1).max(100),
+  intents: z.array(z.string().min(1).max(100)).max(50),
+  outcomes: z.array(z.string().min(1).max(100)).max(50),
+});
+
 const updateOrgSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   industry: z.string().min(1).max(100).optional(),
   company_size: z.string().max(50).nullable().optional(),
   notification_email: z.array(z.string().email()).max(10).nullable().optional(),
   onboarding_completed: z.boolean().optional(),
+  call_taxonomy: z.array(taxonomyEntrySchema).max(20).nullable().optional(),
 });
 
 export async function GET(

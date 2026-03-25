@@ -68,7 +68,7 @@ export async function GET(
     // Build transcript query for current period
     let transcriptQuery = supabase
       .from("transcripts")
-      .select("id, technician_id, source, service_type, eval_status, eval_cost_usd, created_at")
+      .select("id, technician_id, source, service_type, eval_status, eval_cost_usd, created_at, call_type, call_intent, call_outcome")
       .eq("organization_id", orgId)
       .gte("created_at", startDate.toISOString())
       .lte("created_at", endDate.toISOString());
@@ -418,6 +418,38 @@ export async function GET(
         evaluations: data.total,
       }));
 
+    // ======== CALL BREAKDOWNS ========
+    function countField(field: "call_type" | "call_intent" | "call_outcome") {
+      const counts = new Map<string, number>();
+      for (const t of allTranscripts) {
+        const val = (t as Record<string, unknown>)[field];
+        if (typeof val === "string" && val) {
+          counts.set(val, (counts.get(val) ?? 0) + 1);
+        }
+      }
+      return [...counts.entries()]
+        .map(([label, count]) => ({ label, count }))
+        .sort((a, b) => b.count - a.count);
+    }
+
+    const callBreakdowns = {
+      byType:    countField("call_type"),
+      byIntent:  countField("call_intent"),
+      byOutcome: countField("call_outcome"),
+    };
+
+    // ======== CALL INTENT BREAKDOWN ========
+    const intentCounts = new Map<string, number>();
+    for (const t of allTranscripts) {
+      const intent = (t as Record<string, unknown>).call_intent;
+      if (typeof intent === "string" && intent) {
+        intentCounts.set(intent, (intentCounts.get(intent) ?? 0) + 1);
+      }
+    }
+    const callIntentBreakdown = [...intentCounts.entries()]
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+
     return NextResponse.json({
       overview: {
         totalTranscripts,
@@ -446,6 +478,8 @@ export async function GET(
       // Include metadata for filters
       availableTechnicians: technicians,
       availableCriteria: criteria.map((c) => ({ id: c.id, name: c.name })),
+      callIntentBreakdown,
+      callBreakdowns,
     });
   } catch (err) {
     console.error("Dashboard API error:", err);

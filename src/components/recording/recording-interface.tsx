@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { WaveformCanvas } from "./waveform-canvas";
 import { createClient } from "@/lib/supabase/client";
+import { CALL_TYPES, getIntents } from "@/lib/call-taxonomy";
 
 type RecordingState = "idle" | "recording" | "processing" | "complete";
 
@@ -38,7 +39,16 @@ export function RecordingInterface({ orgId, technicians, industry }: Props) {
   const [technicianId, setTechnicianId] = useState<string>("");
   const [serviceType, setServiceType] = useState("");
   const [location, setLocation] = useState("");
+  const [callType, setCallType] = useState("");
+  const [callIntent, setCallIntent] = useState("");
   const [elapsed, setElapsed] = useState(0);
+
+  const intentOptions = getIntents(callType);
+
+  function handleCallTypeChange(val: string) {
+    setCallType(val);
+    setCallIntent("");
+  }
   const [transcriptId, setTranscriptId] = useState<string | null>(null);
   const [transcriptPreview, setTranscriptPreview] = useState("");
 
@@ -180,6 +190,8 @@ export function RecordingInterface({ orgId, technicians, industry }: Props) {
           technicianId: technicianId || null,
           serviceType: serviceType || null,
           location: location || null,
+          callType: callType || null,
+          callIntent: callIntent || null,
         }),
       });
 
@@ -261,6 +273,37 @@ export function RecordingInterface({ orgId, technicians, industry }: Props) {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="call-type" className="text-sm text-muted-foreground">
+            Call Type
+          </Label>
+          <Select value={callType} onValueChange={handleCallTypeChange}>
+            <SelectTrigger id="call-type">
+              <SelectValue placeholder="Who is calling?" />
+            </SelectTrigger>
+            <SelectContent>
+              {CALL_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="call-intent" className="text-sm text-muted-foreground">
+            Intent
+          </Label>
+          <Select value={callIntent} onValueChange={setCallIntent} disabled={!callType}>
+            <SelectTrigger id="call-intent">
+              <SelectValue placeholder={callType ? "Why are they calling?" : "Select call type first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {intentOptions.map((i) => (
+                <SelectItem key={i} value={i}>{i}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

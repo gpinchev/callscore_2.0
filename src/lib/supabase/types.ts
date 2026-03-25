@@ -69,6 +69,7 @@ export interface Organization {
   company_size: string | null;
   onboarding_completed: boolean;
   notification_email: string[] | null;
+  call_taxonomy: Json | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,6 +81,7 @@ export interface OrganizationInsert {
   company_size?: string | null;
   onboarding_completed?: boolean;
   notification_email?: string[] | null;
+  call_taxonomy?: Json | null;
 }
 
 export interface OrganizationUpdate {
@@ -88,6 +90,7 @@ export interface OrganizationUpdate {
   company_size?: string | null;
   onboarding_completed?: boolean;
   notification_email?: string[] | null;
+  call_taxonomy?: Json | null;
 }
 
 // ============================================================
@@ -126,6 +129,8 @@ export interface EvalCriteria {
   name: string;
   description: string;
   category: string | null;
+  call_intent: string | null;
+  call_intents: string[];
   is_active: boolean;
   sort_order: number;
   status: string;
@@ -140,6 +145,8 @@ export interface EvalCriteriaInsert {
   name: string;
   description: string;
   category?: string | null;
+  call_intent?: string | null;
+  call_intents?: string[];
   is_active?: boolean;
   sort_order?: number;
   status?: string;
@@ -150,6 +157,8 @@ export interface EvalCriteriaUpdate {
   name?: string;
   description?: string;
   category?: string | null;
+  call_intent?: string | null;
+  call_intents?: string[];
   is_active?: boolean;
   sort_order?: number;
   status?: string;
@@ -183,12 +192,43 @@ export interface FewShotExampleUpdate {
 }
 
 // ============================================================
+// Customers
+// ============================================================
+export interface Customer {
+  id: string;
+  organization_id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerInsert {
+  id?: string;
+  organization_id: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  notes?: string | null;
+}
+
+export interface CustomerUpdate {
+  name?: string;
+  phone?: string | null;
+  email?: string | null;
+  notes?: string | null;
+}
+
+// ============================================================
 // Transcripts
 // ============================================================
 export interface Transcript {
   id: string;
   organization_id: string;
   technician_id: string | null;
+  customer_id: string | null;
   source: string;
   raw_transcript: string;
   diarized_transcript: Json | null;
@@ -197,6 +237,9 @@ export interface Transcript {
   audio_duration_seconds: number | null;
   service_type: string | null;
   location: string | null;
+  call_type: string | null;
+  call_intent: string | null;
+  call_outcome: string | null;
   metadata: Json;
   eval_status: string;
   eval_cost_usd: number | null;
@@ -210,6 +253,7 @@ export interface TranscriptInsert {
   id?: string;
   organization_id: string;
   technician_id?: string | null;
+  customer_id?: string | null;
   source: string;
   raw_transcript: string;
   diarized_transcript?: Json | null;
@@ -218,6 +262,9 @@ export interface TranscriptInsert {
   audio_duration_seconds?: number | null;
   service_type?: string | null;
   location?: string | null;
+  call_type?: string | null;
+  call_intent?: string | null;
+  call_outcome?: string | null;
   metadata?: Json;
   eval_status?: string;
   eval_cost_usd?: number | null;
@@ -227,6 +274,7 @@ export interface TranscriptInsert {
 
 export interface TranscriptUpdate {
   technician_id?: string | null;
+  customer_id?: string | null;
   source?: string;
   raw_transcript?: string;
   diarized_transcript?: Json | null;
@@ -235,6 +283,9 @@ export interface TranscriptUpdate {
   audio_duration_seconds?: number | null;
   service_type?: string | null;
   location?: string | null;
+  call_type?: string | null;
+  call_intent?: string | null;
+  call_outcome?: string | null;
   metadata?: Json;
   eval_status?: string;
   eval_cost_usd?: number | null;

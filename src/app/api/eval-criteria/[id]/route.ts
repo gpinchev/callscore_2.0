@@ -6,6 +6,8 @@ const updateCriterionSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().min(1).max(2000).optional(),
   category: z.string().max(100).nullable().optional(),
+  call_intent: z.string().max(100).nullable().optional(),
+  call_intents: z.array(z.string().max(100)).max(50).optional(),
   is_active: z.boolean().optional(),
   sort_order: z.number().int().min(0).optional(),
   status: z.enum(["draft", "published"]).optional(),

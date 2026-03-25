@@ -43,7 +43,7 @@ export function StepTechnicians({
     <div className="space-y-6">
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">
-          Add technicians who will be making calls. You can always add more
+          Add CSRs who will be making calls. You can always add more
           later.
         </p>
       </div>
@@ -54,7 +54,7 @@ export function StepTechnicians({
             <div className="flex-1 space-y-1">
               <Label className="sr-only">Name</Label>
               <Input
-                placeholder="Technician name"
+                placeholder="CSR name"
                 value={tech.name}
                 onChange={(e) => updateTechnician(i, "name", e.target.value)}
               />
@@ -80,7 +80,7 @@ export function StepTechnicians({
 
         <Button variant="outline" onClick={addTechnician} className="w-full">
           <Plus className="mr-2 h-4 w-4" />
-          Add Technician
+          Add CSR
         </Button>
       </div>
 

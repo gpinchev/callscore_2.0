@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { CALL_TYPES, getIntents, getOutcomes } from "@/lib/call-taxonomy";
 
 const SERVICE_TYPE_SUGGESTIONS: Record<string, string> = {
   hvac: "e.g., AC repair, furnace install, maintenance plan",
@@ -35,7 +36,19 @@ export function PasteForm({ orgId, technicians, industry }: Props) {
   const [technicianId, setTechnicianId] = useState("");
   const [serviceType, setServiceType] = useState("");
   const [location, setLocation] = useState("");
+  const [callType, setCallType] = useState("");
+  const [callIntent, setCallIntent] = useState("");
+  const [callOutcome, setCallOutcome] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const intentOptions = getIntents(callType);
+  const outcomeOptions = getOutcomes(callType);
+
+  function handleCallTypeChange(val: string) {
+    setCallType(val);
+    setCallIntent("");
+    setCallOutcome("");
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +65,9 @@ export function PasteForm({ orgId, technicians, industry }: Props) {
           rawTranscript: transcript.trim(),
           serviceType: serviceType || null,
           location: location || null,
+          callType: callType || null,
+          callIntent: callIntent || null,
+          callOutcome: callOutcome || null,
         }),
       });
 
@@ -131,6 +147,45 @@ export function PasteForm({ orgId, technicians, industry }: Props) {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="call-type">Call Type</Label>
+          <Select value={callType} onValueChange={handleCallTypeChange}>
+            <SelectTrigger id="call-type">
+              <SelectValue placeholder="Who is calling?" />
+            </SelectTrigger>
+            <SelectContent>
+              {CALL_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="call-intent">Intent</Label>
+          <Select value={callIntent} onValueChange={setCallIntent} disabled={!callType}>
+            <SelectTrigger id="call-intent">
+              <SelectValue placeholder={callType ? "Why are they calling?" : "Select call type first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {intentOptions.map((i) => (
+                <SelectItem key={i} value={i}>{i}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="call-outcome">Outcome</Label>
+          <Select value={callOutcome} onValueChange={setCallOutcome} disabled={!callType}>
+            <SelectTrigger id="call-outcome">
+              <SelectValue placeholder={callType ? "What happened?" : "Select call type first"} />
+            </SelectTrigger>
+            <SelectContent>
+              {outcomeOptions.map((o) => (
+                <SelectItem key={o} value={o}>{o}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

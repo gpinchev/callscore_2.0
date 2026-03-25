@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import {
   GripVertical,
   Plus,
@@ -27,6 +27,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -45,16 +51,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { ALL_INTENTS } from "@/lib/call-taxonomy";
 import type { EvalCriteria, FewShotExample } from "@/lib/supabase/types";
 
-const CATEGORIES = [
-  { value: "greeting", label: "Greeting" },
-  { value: "diagnosis", label: "Diagnosis" },
-  { value: "sales_technique", label: "Sales Technique" },
-  { value: "compliance", label: "Compliance" },
-  { value: "closing", label: "Closing" },
-  { value: "follow_up", label: "Follow Up" },
-];
 
 type CriterionWithExamples = EvalCriteria & {
   few_shot_examples: FewShotExample[];
@@ -71,7 +70,40 @@ export function CriteriaManager({ orgId, initialCriteria }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addDialogIntent, setAddDialogIntent] = useState<string | null>(null);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  // Group criteria by call_intents (array — a criterion can appear under multiple intents)
+  const grouped = useMemo(() => {
+    const byIntent = new Map<string, CriterionWithExamples[]>();
+    const unassigned: CriterionWithExamples[] = [];
+    for (const c of criteria) {
+      // Prefer the new call_intents array; fall back to legacy call_intent string
+      const intents: string[] =
+        c.call_intents?.length > 0
+          ? c.call_intents
+          : c.call_intent
+          ? [c.call_intent]
+          : [];
+      if (intents.length === 0) {
+        unassigned.push(c);
+      } else {
+        for (const intent of intents) {
+          if (!byIntent.has(intent)) byIntent.set(intent, []);
+          byIntent.get(intent)!.push(c);
+        }
+      }
+    }
+    const ordered = ALL_INTENTS
+      .filter((i) => byIntent.has(i))
+      .map((i) => ({ intent: i, items: byIntent.get(i)! }));
+    for (const [intent, items] of byIntent.entries()) {
+      if (!ALL_INTENTS.includes(intent as never)) {
+        ordered.push({ intent, items });
+      }
+    }
+    return { ordered, unassigned };
+  }, [criteria]);
 
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -117,11 +149,11 @@ export function CriteriaManager({ orgId, initialCriteria }: Props) {
   const handleFieldChange = (
     id: string,
     field: string,
-    value: string | boolean | number
+    value: string | boolean | number | string[]
   ) => {
     updateLocalCriterion(id, { [field]: value } as Partial<CriterionWithExamples>);
-    // Instant save for toggles/selects, debounced for text
-    if (typeof value === "boolean" || field === "status" || field === "category") {
+    // Instant save for toggles/selects/arrays, debounced for text
+    if (typeof value === "boolean" || Array.isArray(value) || field === "status" || field === "category") {
       saveCriterion(id, { [field]: value });
     } else {
       debouncedSave(id, { [field]: value });
@@ -188,23 +220,51 @@ export function CriteriaManager({ orgId, initialCriteria }: Props) {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  function renderCriterionCard(criterion: CriterionWithExamples) {
+    return (
+      <CriterionCard
+        key={criterion.id}
+        criterion={criterion}
+        isExpanded={expandedId === criterion.id}
+        isDragging={draggedId === criterion.id}
+        isDragOver={dragOverId === criterion.id}
+        isSaving={saving[criterion.id] || false}
+        onToggleExpand={() => handleToggleExpand(criterion.id)}
+        onFieldChange={(field, value) => handleFieldChange(criterion.id, field, value)}
+        onDelete={() => handleDelete(criterion.id)}
+        onDragStart={() => handleDragStart(criterion.id)}
+        onDragOver={(e) => handleDragOver(e, criterion.id)}
+        onDrop={() => handleDrop(criterion.id)}
+        onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+        onExamplesChange={(examples) => updateLocalCriterion(criterion.id, { few_shot_examples: examples })}
+      />
+    );
+  }
+
+  function openAddForIntent(intent: string | null) {
+    setAddDialogIntent(intent);
+    setAddDialogOpen(true);
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Eval Criteria</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Define what your calls are evaluated against. Drag to reorder.
+            Define what your calls are evaluated against, grouped by call intent.
           </p>
         </div>
         <AddCriterionDialog
           orgId={orgId}
           open={addDialogOpen}
-          onOpenChange={setAddDialogOpen}
+          onOpenChange={(open) => { setAddDialogOpen(open); if (!open) setAddDialogIntent(null); }}
           sortOrder={criteria.length}
+          defaultIntent={addDialogIntent}
           onCreated={(newCriterion) => {
             setCriteria((prev) => [...prev, { ...newCriterion, few_shot_examples: [] }]);
             setAddDialogOpen(false);
+            setAddDialogIntent(null);
           }}
         />
       </div>
@@ -217,41 +277,45 @@ export function CriteriaManager({ orgId, initialCriteria }: Props) {
             <p className="text-muted-foreground mb-6 max-w-sm">
               Add criteria to define how your calls will be evaluated by AI.
             </p>
-            <Button onClick={() => setAddDialogOpen(true)}>
+            <Button onClick={() => openAddForIntent(null)}>
               <Plus className="mr-2 h-4 w-4" />
               Add First Criterion
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
-          {criteria.map((criterion) => (
-            <CriterionCard
-              key={criterion.id}
-              criterion={criterion}
-              isExpanded={expandedId === criterion.id}
-              isDragging={draggedId === criterion.id}
-              isDragOver={dragOverId === criterion.id}
-              isSaving={saving[criterion.id] || false}
-              onToggleExpand={() => handleToggleExpand(criterion.id)}
-              onFieldChange={(field, value) =>
-                handleFieldChange(criterion.id, field, value)
-              }
-              onDelete={() => handleDelete(criterion.id)}
-              onDragStart={() => handleDragStart(criterion.id)}
-              onDragOver={(e) => handleDragOver(e, criterion.id)}
-              onDrop={() => handleDrop(criterion.id)}
-              onDragEnd={() => {
-                setDraggedId(null);
-                setDragOverId(null);
-              }}
-              onExamplesChange={(examples) =>
-                updateLocalCriterion(criterion.id, {
-                  few_shot_examples: examples,
-                })
-              }
-            />
+        <div className="space-y-6">
+          {/* Grouped by intent */}
+          {grouped.ordered.map(({ intent, items }) => (
+            <div key={intent}>
+              <div className="flex items-center mb-2">
+                <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-violet-400" />
+                  {intent}
+                  <span className="text-xs font-normal text-gray-400">({items.length})</span>
+                </h2>
+              </div>
+              <div className="space-y-2">
+                {items.map(renderCriterionCard)}
+              </div>
+            </div>
           ))}
+
+          {/* Unassigned */}
+          {grouped.unassigned.length > 0 && (
+            <div>
+              <div className="flex items-center mb-2">
+                <h2 className="text-sm font-semibold text-gray-400 flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-gray-300" />
+                  Unassigned
+                  <span className="text-xs font-normal">({grouped.unassigned.length})</span>
+                </h2>
+              </div>
+              <div className="space-y-2">
+                {grouped.unassigned.map(renderCriterionCard)}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -283,7 +347,7 @@ function CriterionCard({
   isDragOver: boolean;
   isSaving: boolean;
   onToggleExpand: () => void;
-  onFieldChange: (field: string, value: string | boolean | number) => void;
+  onFieldChange: (field: string, value: string | boolean | number | string[]) => void;
   onDelete: () => void;
   onDragStart: () => void;
   onDragOver: (e: React.DragEvent) => void;
@@ -291,8 +355,6 @@ function CriterionCard({
   onDragEnd: () => void;
   onExamplesChange: (examples: FewShotExample[]) => void;
 }) {
-  const categoryLabel = CATEGORIES.find((c) => c.value === criterion.category)?.label;
-
   return (
     <Card
       draggable
@@ -327,11 +389,6 @@ function CriterionCard({
           </button>
 
           <div className="flex items-center gap-2 shrink-0">
-            {categoryLabel && (
-              <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
-                {categoryLabel}
-              </Badge>
-            )}
             <Badge
               variant={criterion.status === "published" ? "default" : "outline"}
               className="text-xs"
@@ -368,22 +425,11 @@ function CriterionCard({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor={`category-${criterion.id}`}>Category</Label>
-                <Select
-                  value={criterion.category || ""}
-                  onValueChange={(val) => onFieldChange("category", val)}
-                >
-                  <SelectTrigger id={`category-${criterion.id}`}>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Call Intent</Label>
+                <IntentMultiSelect
+                  selected={criterion.call_intents?.length > 0 ? criterion.call_intents : criterion.call_intent ? [criterion.call_intent] : []}
+                  onChange={(intents) => onFieldChange("call_intents", intents)}
+                />
               </div>
             </div>
 
@@ -463,6 +509,75 @@ function CriterionCard({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ============================================================
+// Intent Multi-Select
+// ============================================================
+
+function IntentMultiSelect({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (intents: string[]) => void;
+}) {
+  const toggle = (intent: string) => {
+    if (selected.includes(intent)) {
+      onChange(selected.filter((i) => i !== intent));
+    } else {
+      onChange([...selected, intent]);
+    }
+  };
+
+  const label =
+    selected.length === 0
+      ? "No intent"
+      : selected.length === 1
+      ? selected[0]
+      : `${selected.length} intents selected`;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+        >
+          <span className={selected.length === 0 ? "text-muted-foreground" : "text-foreground"}>
+            {label}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-0" align="start">
+        <div className="max-h-64 overflow-y-auto p-1">
+          {selected.length > 0 && (
+            <button
+              type="button"
+              className="w-full text-left px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => onChange([])}
+            >
+              Clear all
+            </button>
+          )}
+          {ALL_INTENTS.map((intent) => (
+            <label
+              key={intent}
+              className="flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer hover:bg-accent"
+            >
+              <Checkbox
+                checked={selected.includes(intent)}
+                onCheckedChange={() => toggle(intent)}
+                id={`intent-check-${intent}`}
+              />
+              <span>{intent}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -664,19 +779,30 @@ function AddCriterionDialog({
   open,
   onOpenChange,
   sortOrder,
+  defaultIntent,
   onCreated,
 }: {
   orgId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sortOrder: number;
+  defaultIntent: string | null;
   onCreated: (criterion: EvalCriteria) => void;
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
+  const [callIntents, setCallIntents] = useState<string[]>(defaultIntent ? [defaultIntent] : []);
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [submitting, setSubmitting] = useState(false);
+
+  // Sync defaultIntent when dialog opens for a specific group
+  const prevOpen = useRef(false);
+  if (open && !prevOpen.current) {
+    if (defaultIntent !== null) {
+      setCallIntents(defaultIntent ? [defaultIntent] : []);
+    }
+  }
+  prevOpen.current = open;
 
   const handleCreate = async () => {
     if (!name.trim() || !description.trim()) return;
@@ -689,7 +815,8 @@ function AddCriterionDialog({
           organization_id: orgId,
           name: name.trim(),
           description: description.trim(),
-          category: category || null,
+          call_intents: callIntents,
+          call_intent: callIntents[0] ?? null,
           sort_order: sortOrder,
           status,
         }),
@@ -701,7 +828,7 @@ function AddCriterionDialog({
       // Reset form
       setName("");
       setDescription("");
-      setCategory("");
+      setCallIntents([]);
       setStatus("draft");
     } catch {
       toast.error("Failed to create criterion");
@@ -746,19 +873,8 @@ function AddCriterionDialog({
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="new-category">Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger id="new-category">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      {cat.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Call Intent</Label>
+              <IntentMultiSelect selected={callIntents} onChange={setCallIntents} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="new-status">Status</Label>

@@ -59,6 +59,11 @@ export interface SparklinePoint {
   evaluations: number;
 }
 
+export interface CallIntentCount {
+  label: string;
+  count: number;
+}
+
 export interface DashboardData {
   overview: DashboardOverview;
   criteriaPassRates: CriteriaPassRate[];
@@ -68,6 +73,7 @@ export interface DashboardData {
   sparklineData: SparklinePoint[];
   availableTechnicians: { id: string; name: string }[];
   availableCriteria: { id: string; name: string }[];
+  callIntentBreakdown: CallIntentCount[];
 }
 
 export interface DashboardFilters {

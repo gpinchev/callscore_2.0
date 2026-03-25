@@ -17,7 +17,7 @@ const navItems = [
   { label: "Record", href: "record", icon: Mic },
   { label: "Dashboard", href: "dashboard", icon: LayoutDashboard },
   { label: "Paste", href: "paste", icon: ClipboardPaste },
-  { label: "Transcripts", href: "transcripts", icon: FileText },
+  { label: "Calls", href: "transcripts", icon: FileText },
   { label: "Technicians", href: "technicians", icon: Users },
   { label: "Eval Criteria", href: "settings/criteria", icon: ListChecks },
   { label: "Settings", href: "settings", icon: Settings },

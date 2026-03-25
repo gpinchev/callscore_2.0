@@ -8,6 +8,8 @@ const transcribeSchema = z.object({
   technicianId: z.string().uuid().nullable().optional(),
   serviceType: z.string().max(200).nullable().optional(),
   location: z.string().max(200).nullable().optional(),
+  callType: z.string().max(100).nullable().optional(),
+  callIntent: z.string().max(100).nullable().optional(),
 });
 
 export async function POST(request: Request) {
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { audioUrl, organizationId, technicianId, serviceType, location } =
+  const { audioUrl, organizationId, technicianId, serviceType, location, callType, callIntent } =
     parsed.data;
 
   // Fetch audio from Supabase Storage
@@ -131,6 +133,8 @@ export async function POST(request: Request) {
       audio_duration_seconds: duration,
       service_type: serviceType || null,
       location: location || null,
+      call_type: callType || null,
+      call_intent: callIntent || null,
       eval_status: "pending",
     })
     .select()

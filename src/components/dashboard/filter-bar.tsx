@@ -125,7 +125,7 @@ export function FilterBar({
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="gap-2">
             <Filter className="h-3.5 w-3.5" />
-            Technicians
+            CSRs
             {filters.technicianIds.length > 0 && (
               <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
                 {filters.technicianIds.length}
@@ -149,7 +149,7 @@ export function FilterBar({
             ))}
             {technicians.length === 0 && (
               <p className="px-2 py-1 text-xs text-muted-foreground">
-                No technicians
+                No CSRs
               </p>
             )}
           </div>

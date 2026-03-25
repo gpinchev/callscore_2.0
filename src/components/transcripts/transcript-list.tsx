@@ -5,16 +5,19 @@ import Link from "next/link";
 import {
   Mic,
   FileText,
-  Sparkles,
-  Clock,
-  User,
-  Filter,
   Plus,
   ClipboardPaste,
+  Filter,
+  ChevronDown,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -22,10 +25,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CALL_TAXONOMY, CALL_TYPES, ALL_INTENTS, ALL_OUTCOMES } from "@/lib/call-taxonomy";
 import type { Transcript } from "@/lib/supabase/types";
+
+// ── Mock data fill ────────────────────────────────────────────
+const MOCK_CUSTOMERS = [
+  "James Carter", "Maria Lopez", "David Kim", "Sarah Johnson", "Michael Brown",
+  "Emily Davis", "Robert Wilson", "Jessica Martinez", "William Anderson", "Ashley Thomas",
+  "Christopher Jackson", "Amanda White", "Matthew Harris", "Stephanie Taylor", "Joshua Moore",
+  "Nicole Martin", "Andrew Garcia", "Melissa Robinson", "Daniel Clark", "Lauren Lewis",
+];
+
+function idHash(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (Math.imul(31, h) + id.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function pick<T>(arr: readonly T[], seed: number): T {
+  return arr[seed % arr.length];
+}
+
+function fillMockFields(t: TranscriptWithTechnician): TranscriptWithTechnician {
+  if (t.call_type && t.call_intent && t.call_outcome && t.customers) return t;
+  const h = idHash(t.id);
+  const callType = t.call_type ?? pick(CALL_TYPES, h);
+  const taxonomy = CALL_TAXONOMY[callType as keyof typeof CALL_TAXONOMY];
+  const callIntent = t.call_intent ?? pick(taxonomy?.intents ?? ["General Inquiry"], h * 7);
+  const callOutcome = t.call_outcome ?? pick(taxonomy?.outcomes ?? ["No Action Needed"], h * 13);
+  const customers = t.customers ?? { name: pick(MOCK_CUSTOMERS, h * 3) };
+  return { ...t, call_type: callType, call_intent: callIntent, call_outcome: callOutcome, customers };
+}
 
 type TranscriptWithTechnician = Transcript & {
   technicians: { name: string } | null;
+  customers: { name: string } | null;
+  call_type?: string | null;
+  call_intent?: string | null;
+  call_outcome?: string | null;
 };
 
 interface Props {
@@ -34,74 +71,66 @@ interface Props {
   technicians: Array<{ id: string; name: string }>;
 }
 
-const SOURCE_CONFIG = {
-  recording: { label: "Recorded", icon: Mic, variant: "default" as const },
-  paste: { label: "Pasted", icon: FileText, variant: "secondary" as const },
-  mock: { label: "Mock", icon: Sparkles, variant: "outline" as const },
-};
-
-const STATUS_CONFIG = {
-  pending: { label: "Pending", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  processing: { label: "Processing", className: "bg-amber-100 text-amber-700 border-amber-200" },
-  completed: { label: "Completed", className: "bg-green-100 text-green-700 border-green-200" },
-  failed: { label: "Failed", className: "bg-red-100 text-red-700 border-red-200" },
-};
-
-function formatRelativeDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  return {
+    date: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+    time: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+  };
 }
 
 export function TranscriptList({ orgId, transcripts, technicians }: Props) {
-  const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [techFilter, setTechFilter] = useState<string>("all");
+  const [callTypeFilter, setCallTypeFilter] = useState("all");
+  const [intentFilter, setIntentFilter] = useState("all");
+  const [outcomeFilter, setOutcomeFilter] = useState("all");
+  const [techFilter, setTechFilter] = useState("all");
+
+  const displayTranscripts = useMemo(() => transcripts.map(fillMockFields), [transcripts]);
 
   const filtered = useMemo(() => {
-    return transcripts.filter((t) => {
-      if (sourceFilter !== "all" && t.source !== sourceFilter) return false;
-      if (statusFilter !== "all" && t.eval_status !== statusFilter) return false;
+    return displayTranscripts.filter((t) => {
+      if (callTypeFilter !== "all" && t.call_type !== callTypeFilter) return false;
+      if (intentFilter !== "all" && t.call_intent !== intentFilter) return false;
+      if (outcomeFilter !== "all" && t.call_outcome !== outcomeFilter) return false;
       if (techFilter !== "all" && t.technician_id !== techFilter) return false;
       return true;
     });
-  }, [transcripts, sourceFilter, statusFilter, techFilter]);
+  }, [displayTranscripts, callTypeFilter, intentFilter, outcomeFilter, techFilter]);
 
   if (transcripts.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-semibold">Transcripts</h1>
+        <h1 className="text-2xl font-semibold">Calls</h1>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h2 className="text-lg font-medium mb-2">No transcripts yet</h2>
+            <h2 className="text-lg font-medium mb-2">No calls yet</h2>
             <p className="text-muted-foreground mb-6 max-w-sm">
-              Record a call or paste a transcript to get started with AI-powered
-              evaluation.
+              Record a call or paste a transcript to get started with AI-powered evaluation.
             </p>
-            <div className="flex gap-3">
-              <Button asChild>
-                <Link href={`/org/${orgId}/record`}>
-                  <Mic className="mr-2 h-4 w-4" />
-                  Record a Call
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href={`/org/${orgId}/paste`}>
-                  <ClipboardPaste className="mr-2 h-4 w-4" />
-                  Paste Transcript
-                </Link>
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Call Recording
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href={`/org/${orgId}/record`} className="flex items-center gap-2">
+                    <Mic className="h-4 w-4" />
+                    Record
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/org/${orgId}/paste`} className="flex items-center gap-2">
+                    <ClipboardPaste className="h-4 w-4" />
+                    Paste
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </CardContent>
         </Card>
       </div>
@@ -110,154 +139,199 @@ export function TranscriptList({ orgId, transcripts, technicians }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Transcripts</h1>
-        <div className="flex gap-2">
-          <Button size="sm" asChild>
-            <Link href={`/org/${orgId}/record`}>
+        <h1 className="text-2xl font-semibold">Calls</h1>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm">
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Record
-            </Link>
-          </Button>
-          <Button size="sm" variant="outline" asChild>
-            <Link href={`/org/${orgId}/paste`}>
-              <ClipboardPaste className="mr-1 h-3.5 w-3.5" />
-              Paste
-            </Link>
-          </Button>
-        </div>
+              Add Call Recording
+              <ChevronDown className="ml-1 h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href={`/org/${orgId}/record`} className="flex items-center gap-2">
+                <Mic className="h-4 w-4" />
+                Record
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/org/${orgId}/paste`} className="flex items-center gap-2">
+                <ClipboardPaste className="h-4 w-4" />
+                Paste
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <Filter className="h-4 w-4 text-muted-foreground" />
-        <Select value={sourceFilter} onValueChange={setSourceFilter}>
-          <SelectTrigger className="w-[130px] h-8 text-xs">
-            <SelectValue placeholder="Source" />
+        <Select value={callTypeFilter} onValueChange={setCallTypeFilter}>
+          <SelectTrigger className="w-[170px] h-8 text-xs">
+            <SelectValue placeholder="Call Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All sources</SelectItem>
-            <SelectItem value="recording">Recorded</SelectItem>
-            <SelectItem value="paste">Pasted</SelectItem>
-            <SelectItem value="mock">Mock</SelectItem>
+            <SelectItem value="all">All call types</SelectItem>
+            {CALL_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[130px] h-8 text-xs">
-            <SelectValue placeholder="Status" />
+        <Select value={intentFilter} onValueChange={setIntentFilter}>
+          <SelectTrigger className="w-[200px] h-8 text-xs">
+            <SelectValue placeholder="Intent" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="all">All intents</SelectItem>
+            {ALL_INTENTS.map((i) => (
+              <SelectItem key={i} value={i}>{i}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={outcomeFilter} onValueChange={setOutcomeFilter}>
+          <SelectTrigger className="w-[200px] h-8 text-xs">
+            <SelectValue placeholder="Outcome" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All outcomes</SelectItem>
+            {ALL_OUTCOMES.map((o) => (
+              <SelectItem key={o} value={o}>{o}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
         {technicians.length > 0 && (
           <Select value={techFilter} onValueChange={setTechFilter}>
-            <SelectTrigger className="w-[150px] h-8 text-xs">
-              <SelectValue placeholder="Technician" />
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectValue placeholder="CSR" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All technicians</SelectItem>
+              <SelectItem value="all">All CSRs</SelectItem>
               {technicians.map((t) => (
-                <SelectItem key={t.id} value={t.id}>
-                  {t.name}
-                </SelectItem>
+                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         )}
 
-        {(sourceFilter !== "all" ||
-          statusFilter !== "all" ||
-          techFilter !== "all") && (
+        {(callTypeFilter !== "all" || intentFilter !== "all" || outcomeFilter !== "all" || techFilter !== "all") && (
           <Button
             variant="ghost"
             size="sm"
             className="h-8 text-xs"
-            onClick={() => {
-              setSourceFilter("all");
-              setStatusFilter("all");
-              setTechFilter("all");
-            }}
+            onClick={() => { setCallTypeFilter("all"); setIntentFilter("all"); setOutcomeFilter("all"); setTechFilter("all"); }}
           >
             Clear filters
           </Button>
         )}
       </div>
 
-      {/* Transcript cards */}
-      <div className="space-y-2">
-        {filtered.map((t) => {
-          const source = SOURCE_CONFIG[t.source as keyof typeof SOURCE_CONFIG] ||
-            SOURCE_CONFIG.paste;
-          const status =
-            STATUS_CONFIG[t.eval_status as keyof typeof STATUS_CONFIG] ||
-            STATUS_CONFIG.pending;
-          const SourceIcon = source.icon;
+      {/* Table */}
+      <div className="rounded-lg border bg-white overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-gray-50">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-36">Date</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-40">Call Type</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-44">Intent</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-44">Outcome</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-32">CSR</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-36">Customer</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Preview</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filtered.map((t) => {
+              const { date, time } = formatDate(t.created_at);
+              const callType = t.call_type;
+              const callIntent = t.call_intent;
+              const callOutcome = t.call_outcome;
 
-          return (
-            <Link
-              key={t.id}
-              href={`/org/${orgId}/transcripts/${t.id}`}
-              className="block"
-            >
-              <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-                <CardContent className="py-3 px-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span className="text-sm font-medium truncate">
-                          {t.technicians?.name || "Unassigned"}
-                        </span>
-                        {t.service_type && (
-                          <span className="text-xs text-muted-foreground truncate hidden sm:inline">
-                            &middot; {t.service_type}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {t.raw_transcript.slice(0, 100)}
-                        {t.raw_transcript.length > 100 ? "..." : ""}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge
-                        variant={source.variant}
-                        className={`text-xs gap-1 ${t.source === "mock" ? "bg-purple-50 text-purple-700 border-purple-200" : ""}`}
-                      >
-                        <SourceIcon className="h-3 w-3" />
-                        <span className="hidden sm:inline">{source.label}</span>
-                      </Badge>
-                      <Badge variant="outline" className={`text-xs ${status.className}`}>
-                        {status.label}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        <Clock className="h-3 w-3 inline mr-0.5" />
-                        {formatRelativeDate(t.created_at)}
+              return (
+                <tr
+                  key={t.id}
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => window.location.href = `/org/${orgId}/transcripts/${t.id}`}
+                >
+                  {/* Date */}
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <div className="font-medium text-gray-900">{date}</div>
+                    <div className="text-xs text-gray-400">{time}</div>
+                  </td>
+
+                  {/* Call Type */}
+                  <td className="px-4 py-3">
+                    {callType ? (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-blue-200 bg-blue-50 text-blue-700">
+                        {callType}
                       </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </td>
 
-      {filtered.length === 0 && transcripts.length > 0 && (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <p className="text-muted-foreground">
-              No transcripts match the current filters.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+                  {/* Intent */}
+                  <td className="px-4 py-3">
+                    {callIntent ? (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-violet-200 bg-violet-50 text-violet-700">
+                        {callIntent}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </td>
+
+                  {/* Outcome */}
+                  <td className="px-4 py-3">
+                    {callOutcome ? (
+                      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium border border-emerald-200 bg-emerald-50 text-emerald-700">
+                        {callOutcome}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
+                  </td>
+
+                  {/* CSR */}
+                  <td className="px-4 py-3">
+                    <span className="truncate text-gray-700">{t.technicians?.name || <span className="text-gray-400">Unassigned</span>}</span>
+                  </td>
+
+                  {/* Customer */}
+                  <td className="px-4 py-3">
+                    {t.customers?.name
+                      ? <span className="truncate text-gray-700">{t.customers.name}</span>
+                      : <span className="text-gray-400">—</span>
+                    }
+                  </td>
+
+                  {/* Preview */}
+                  <td className="px-4 py-3 max-w-xs">
+                    <div className="truncate text-gray-800">
+                      {t.raw_transcript.slice(0, 80)}{t.raw_transcript.length > 80 ? "…" : ""}
+                    </div>
+                    {t.service_type && (
+                      <div className="text-xs text-gray-400 mt-0.5 truncate">{t.service_type}</div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {filtered.length === 0 && (
+          <div className="py-12 text-center text-gray-400">
+            No calls match the current filters.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

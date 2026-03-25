@@ -8,6 +8,9 @@ const createTranscriptSchema = z.object({
   rawTranscript: z.string().min(1, "Transcript text is required"),
   serviceType: z.string().max(200).nullable().optional(),
   location: z.string().max(200).nullable().optional(),
+  callType: z.string().max(100).nullable().optional(),
+  callIntent: z.string().max(100).nullable().optional(),
+  callOutcome: z.string().max(100).nullable().optional(),
 });
 
 export async function GET(request: Request) {
@@ -74,7 +77,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { organizationId, technicianId, rawTranscript, serviceType, location } =
+  const { organizationId, technicianId, rawTranscript, serviceType, location, callType, callIntent, callOutcome } =
     parsed.data;
 
   const { data, error } = await supabase
@@ -89,6 +92,9 @@ export async function POST(request: Request) {
       audio_duration_seconds: null,
       service_type: serviceType || null,
       location: location || null,
+      call_type: callType || null,
+      call_intent: callIntent || null,
+      call_outcome: callOutcome || null,
       eval_status: "pending",
     })
     .select()

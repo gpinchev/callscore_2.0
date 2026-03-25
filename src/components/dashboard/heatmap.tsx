@@ -67,7 +67,7 @@ export function Heatmap({ data, orgId }: Props) {
         <thead>
           <tr>
             <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left font-medium text-muted-foreground">
-              Technician
+              CSR
             </th>
             {criteria.map((c) => (
               <th

@@ -16,9 +16,11 @@ import type { Organization } from "@/lib/supabase/types";
 export function OrgSwitcher({
   orgId,
   orgName,
+  navy,
 }: {
   orgId: string;
   orgName: string;
+  navy?: boolean;
 }) {
   const router = useRouter();
   const [orgs, setOrgs] = useState<Organization[]>([]);
@@ -33,10 +35,20 @@ export function OrgSwitcher({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="gap-2 font-medium">
-          <Building2 className="h-4 w-4 text-muted-foreground" />
+        <Button
+          variant="ghost"
+          className="gap-2 font-medium"
+          style={navy ? { color: "var(--nav-fg)" } : undefined}
+        >
+          <Building2
+            className="h-4 w-4"
+            style={navy ? { color: "var(--nav-muted)" } : undefined}
+          />
           {orgName}
-          <ChevronsUpDown className="h-3 w-3 text-muted-foreground" />
+          <ChevronsUpDown
+            className="h-3 w-3"
+            style={navy ? { color: "var(--nav-muted)" } : undefined}
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">

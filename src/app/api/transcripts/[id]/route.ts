@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const patchSchema = z.object({
+  call_type: z.string().max(100).nullable().optional(),
+  call_intent: z.string().max(100).nullable().optional(),
+  call_outcome: z.string().max(100).nullable().optional(),
+});
 
 export async function GET(
   _request: Request,
@@ -20,6 +29,43 @@ export async function GET(
       { error: "Transcript not found" },
       { status: 404 }
     );
+  }
+
+  return NextResponse.json(data);
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  if (!UUID_RE.test(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input", fieldErrors: parsed.error.flatten().fieldErrors }, { status: 400 });
+  }
+
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("transcripts")
+    .update(parsed.data)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("transcripts/[id] PATCH error:", error);
+    return NextResponse.json({ error: "Failed to update transcript" }, { status: 500 });
   }
 
   return NextResponse.json(data);
