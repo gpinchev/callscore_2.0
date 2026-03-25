@@ -94,9 +94,9 @@ export function CriteriaManager({ orgId, initialCriteria }: Props) {
         }
       }
     }
-    const ordered = ALL_INTENTS
+    const ordered: { intent: string; items: CriterionWithExamples[] }[] = ALL_INTENTS
       .filter((i) => byIntent.has(i))
-      .map((i) => ({ intent: i, items: byIntent.get(i)! }));
+      .map((i) => ({ intent: i as string, items: byIntent.get(i)! }));
     for (const [intent, items] of byIntent.entries()) {
       if (!ALL_INTENTS.includes(intent as never)) {
         ordered.push({ intent, items });
